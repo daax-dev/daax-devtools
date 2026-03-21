@@ -1,0 +1,77 @@
+{
+  "name": "Daax Lean",
+
+  // Lean devcontainer: Claude Code + Flowspec only
+  // No gastown/beads (eliminates 3 HIGH CVEs from Go dependencies)
+  // See ../OPTIMIZATION.md for details
+
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+        "python.terminal.activateEnvironment": false,
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["tests"],
+        "python.linting.enabled": false,
+        "python.formatting.provider": "none",
+        "[python]": {
+          "editor.formatOnSave": true,
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit",
+            "source.fixAll": "explicit"
+          }
+        },
+        "ruff.enable": true,
+        "ruff.organizeImports": true,
+        "ruff.fixAll": true,
+        "editor.rulers": [88],
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "git.autofetch": true,
+        "git.confirmSync": false
+      }
+    }
+  },
+
+  "mounts": [
+    "source=${localWorkspaceFolder}/backlog,target=/workspaces/daax/backlog,type=bind,consistency=cached"
+  ],
+
+  "remoteEnv": {
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    "PYTHONUNBUFFERED": "1",
+    "UV_SYSTEM_PYTHON": "1",
+    "VIRTUAL_ENV": "/workspaces/daax/.venv",
+    "PATH": "/workspaces/daax/.venv/bin:/home/vscode/.local/share/pnpm:/home/vscode/.local/bin:${containerEnv:PATH}"
+  },
+
+  "postCreateCommand": "bash .devcontainer/lean/postCreate.sh",
+  "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+  "postAttachCommand": "echo '--- Daax Lean Ready ---' && uv --version && python --version",
+
+  "forwardPorts": [],
+
+  "containerEnv": {
+    "TERM": "xterm-256color",
+    "PNPM_HOME": "/home/vscode/.local/share/pnpm"
+  },
+
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/daax"
+}

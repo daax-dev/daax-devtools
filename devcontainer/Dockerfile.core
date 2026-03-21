@@ -1,0 +1,131 @@
+# Daax Core Development Container - AI Coding CLIs Only
+# Published to Docker Hub: jpoley/daax-agents-core
+#
+# This Dockerfile builds on the BASE layer (daax-agents-base) and adds:
+# - AI coding assistant CLIs (Claude Code, Copilot, Codex, Gemini, OpenCode, Kiro)
+# - Agent Browser and MCP Inspector
+#
+# Does NOT include: flowspec, backlog.md, openspec, get-shit-done-cc
+# For spec-driven development frameworks, use the specialized variants:
+#   - daax-agents-flowspec (core + flowspec + backlog.md)
+#   - daax-agents-gsd (core + get-shit-done-cc)
+#   - daax-agents-openspec (core + @fission-ai/openspec)
+#
+# Build order:
+#   1. Build base: docker build -f Dockerfile.base -t jpoley/daax-agents-base .
+#   2. Build core: docker build -f Dockerfile.core -t jpoley/daax-agents-core .
+#
+# Usage:
+#   docker pull jpoley/daax-agents-core:latest
+#   Or reference in devcontainer.json: "image": "jpoley/daax-agents-core:latest"
+#
+# Target size: ~1.4GB
+#
+# =============================================================================
+# VERSION TRACKING - Update these when upgrading AI CLI tools
+# =============================================================================
+# Last updated: 2026-02-21
+# Claude Code: @anthropic-ai/claude-code (latest)
+# GitHub Copilot: @github/copilot (latest)
+# OpenAI Codex: @openai/codex (latest)
+# Google Gemini: @google/gemini-cli (latest)
+# OpenCode: opencode-ai (latest)
+# Kiro CLI: @anthropic-ai/kiro (latest)
+# Agent Browser: agent-browser (latest)
+# MCP Inspector: @modelcontextprotocol/inspector (latest)
+# =============================================================================
+
+# Use the base image with all stable dependencies
+ARG BASE_IMAGE=jpoley/daax-agents-base:latest
+FROM ${BASE_IMAGE}
+
+# Re-establish environment (inherited from base but making explicit)
+ENV PNPM_HOME="/home/vscode/.local/share/pnpm"
+ENV GOPATH="/home/vscode/go"
+ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:${GOPATH}/bin:/usr/local/bin:${PATH}"
+
+# Copy custom oh-my-posh theme (in case base doesn't have it)
+COPY --chown=vscode:vscode daax.omp.json /home/vscode/.config/daax.omp.json
+
+# =============================================================================
+# AI CODING ASSISTANT CLIs - This layer updates frequently
+# =============================================================================
+# Install AI coding assistant CLIs
+# Note: These are optional, best-effort installs. Some packages may not be published yet.
+# pnpm v10+ blocks build scripts by default; we allow them for native modules
+# SECURITY NOTE: Packages installed without version pinning for MVP flexibility.
+# AI CLIs update frequently with breaking changes. For production hardening:
+# - Pin versions: pnpm install -g @anthropic-ai/claude-code@1.x.x
+# - Use lockfile: pnpm import from package-lock.json
+# - Verify checksums with npm audit or similar tooling
+# See Copilot review comments on PRs #282, #285, #286 for tracking.
+# IMPORTANT: Configure pnpm global-bin-dir to avoid "not in PATH" errors
+RUN pnpm config set global-bin-dir "${PNPM_HOME}" \
+    && pnpm install -g @anthropic-ai/claude-code || echo "Note: Claude Code CLI not installed (optional - may require auth)" \
+    && pnpm install -g @github/copilot || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" \
+    && pnpm install -g @openai/codex || echo "Note: OpenAI Codex CLI not installed (optional - requires ChatGPT subscription)" \
+    && pnpm install -g @google/gemini-cli || echo "Note: Gemini CLI not installed (optional - package may not be published yet)" \
+    && pnpm install -g opencode-ai || echo "Note: OpenCode CLI not installed (optional - package may not be published yet)" \
+    && pnpm install -g @anthropic-ai/kiro || echo "Note: Kiro CLI not installed (optional - may require auth)" \
+    && pnpm install -g agent-browser || echo "Note: Agent Browser not installed (optional)" \
+    && pnpm install -g @modelcontextprotocol/inspector || echo "Note: MCP Inspector not installed (optional)" \
+    && pnpm approve-builds -g node-pty protobufjs tree-sitter-bash 2>/dev/null || echo "Note: pnpm approve-builds skipped (packages may not be installed)" \
+    && pnpm rebuild -g 2>/dev/null || echo "Note: pnpm rebuild skipped (optional - some AI CLI packages may not be fully rebuilt)"
+
+# Fix pnpm package vulnerabilities by forcing semver upgrade
+# - CVE-2022-25883: semver@<7.5.2 -> >=7.5.2 (ReDoS vulnerability; fixed in semver 7.5.2)
+RUN cd "${PNPM_HOME}" && pnpm update semver --latest 2>/dev/null || echo "pnpm semver update skipped"
+
+# =============================================================================
+# CACHE CLEANUP - Remove all build caches to minimize image size
+# =============================================================================
+RUN echo "=== Cleaning build caches ===" \
+    # uv/pip: wheel cache, http cache, git checkouts
+    && /home/vscode/.local/bin/uv cache clean \
+    && rm -rf /home/vscode/.cache/uv 2>/dev/null || true \
+    && rm -rf /home/vscode/.cache/pip 2>/dev/null || true \
+    # pnpm: content-addressable store (already pruned, but ensure clean)
+    && pnpm store prune 2>/dev/null || true \
+    # npm: cache directory
+    && npm cache clean --force 2>/dev/null || true \
+    # General: temp files, logs, history
+    && rm -rf /tmp/* 2>/dev/null || true \
+    && rm -rf /home/vscode/.npm/_logs 2>/dev/null || true \
+    && rm -rf /home/vscode/.local/state 2>/dev/null || true \
+    && rm -f /home/vscode/.zsh_history 2>/dev/null || true \
+    && rm -f /home/vscode/.bash_history 2>/dev/null || true \
+    && echo "Cache cleanup complete"
+
+# Labels for Docker Hub
+LABEL org.opencontainers.image.title="Daax Agents Core"
+LABEL org.opencontainers.image.description="Core development container with AI coding assistants (Claude Code, Codex, Gemini, GitHub Copilot, OpenCode, Kiro)"
+LABEL org.opencontainers.image.source="https://github.com/peregrinesummit/daax"
+LABEL org.opencontainers.image.vendor="jpoley"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.base.name="jpoley/daax-agents-base:latest"
+LABEL ai.daax.variant="core"
+LABEL ai.daax.includes="claude-code,copilot,codex,gemini,opencode,kiro,agent-browser,mcp-inspector"
+
+# Verify installations and print versions for debugging
+# Note: Some CLIs may hang on --version, so we use timeout for safety:
+# - Most AI CLIs (claude, copilot, codex, gemini, opencode) work fine with timeout
+# - agent-browser and mcp-inspector are checked via 'which' because they may hang
+#   or start interactive servers when run with --version
+RUN echo "=== Core Layer Installation Verification ===" \
+    && echo "Python: $(python --version)" \
+    && echo "Node: $(node --version)" \
+    && echo "pnpm: $(pnpm --version)" \
+    && echo "uv: $(/home/vscode/.local/bin/uv --version)" \
+    && echo "--- AI Coding CLIs ---" \
+    && echo "claude: $(timeout 5 claude --version 2>&1 || echo 'not installed')" \
+    && echo "copilot: $(timeout 5 copilot --version 2>&1 || echo 'not installed')" \
+    && echo "codex: $(timeout 5 codex --version 2>&1 || echo 'not installed')" \
+    && echo "gemini: $(timeout 5 gemini --version 2>&1 || echo 'not installed')" \
+    && echo "opencode: $(timeout 5 opencode --version 2>&1 || echo 'not installed')" \
+    && echo "kiro: $(timeout 5 kiro --version 2>&1 || echo 'not installed')" \
+    && echo "agent-browser: $(which agent-browser >/dev/null 2>&1 && echo 'installed' || echo 'not installed')" \
+    && echo "mcp-inspector: $(which mcp-inspector >/dev/null 2>&1 && echo 'installed' || echo 'not installed')" \
+    && echo "PATH: $PATH"
+
+# Default command
+CMD ["zsh"]

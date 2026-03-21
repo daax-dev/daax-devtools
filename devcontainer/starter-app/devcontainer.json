@@ -1,0 +1,12 @@
+{
+  "name": "starter-app",
+  "image": "ghcr.io/jpoley/images/typescript-node:22",
+  "features": {
+    "ghcr.io/jpoley/features/github-cli:1": {},
+    "ghcr.io/jpoley/features/common-utils:2": {}
+  },
+  "forwardPorts": [
+    3000
+  ],
+  "postCreateCommand": "npm install"
+}

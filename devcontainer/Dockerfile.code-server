@@ -1,0 +1,72 @@
+# Daax Code-Server with Language Runtimes
+#
+# Extends codercom/code-server with language toolchains so the integrated
+# terminal is actually useful. Languages included:
+#   - Go (version-pinned, sha256-verified download for reproducible builds)
+#   - Python 3 + uv (via pip — no remote installer scripts)
+#   - Rust (via apt — no curl | sh)
+#   - Common build tools: gcc, make, git, jq
+#
+# Note: Node.js is intentionally omitted — codercom/code-server bundles it.
+
+FROM codercom/code-server:4.108.2
+
+USER root
+
+# ── System packages ────────────────────────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cargo \
+    curl \
+    git \
+    jq \
+    make \
+    python3 \
+    python3-pip \
+    python3-venv \
+    rustc \
+    unzip \
+    zip \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Go (sha256-verified) ───────────────────────────────────────────────────────
+ARG GO_VERSION=1.24.1
+ARG TARGETARCH
+RUN if [ -z "${TARGETARCH}" ]; then echo "ERROR: TARGETARCH is not set. Provide a valid architecture (amd64 or arm64)." >&2; exit 1; fi \
+    && GOARCH="${TARGETARCH}" \
+    && case "${GOARCH}" in \
+        "amd64") GOTAR="go${GO_VERSION}.linux-amd64.tar.gz" ;; \
+        "arm64") GOTAR="go${GO_VERSION}.linux-arm64.tar.gz" ;; \
+        *)        echo "Unsupported GOARCH '${GOARCH}'. Supported values: amd64, arm64." >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL "https://go.dev/dl/${GOTAR}" -o "/tmp/${GOTAR}" \
+    && curl -fsSL "https://go.dev/dl/${GOTAR}.sha256" -o "/tmp/${GOTAR}.sha256" \
+    && cd /tmp \
+    && sha256sum -c "${GOTAR}.sha256" \
+    && tar -C /usr/local -xzf "/tmp/${GOTAR}" \
+    && rm "/tmp/${GOTAR}" "/tmp/${GOTAR}.sha256" \
+    && /usr/local/go/bin/go version
+
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# ── uv (Python package manager, installed via pip, version-pinned) ───────────
+ARG UV_VERSION=0.4.27
+RUN pip3 install --no-cache-dir "uv==${UV_VERSION}" \
+    && uv --version
+
+# ── Per-user environment ───────────────────────────────────────────────────────
+RUN mkdir -p /home/coder/go/bin && chown -R coder:coder /home/coder/go
+
+USER coder
+
+RUN printf '\nexport GOPATH="$HOME/go"\nexport GOBIN="$HOME/go/bin"\nexport PATH="/usr/local/go/bin:$GOBIN:$PATH"\n' \
+    | tee -a /home/coder/.bashrc >> /home/coder/.zshrc
+
+# ── Verify ─────────────────────────────────────────────────────────────────────
+USER root
+RUN /usr/local/go/bin/go version \
+    && python3 --version \
+    && uv --version \
+    && rustc --version
+
+USER coder

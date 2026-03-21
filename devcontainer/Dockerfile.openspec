@@ -1,0 +1,92 @@
+# Daax OpenSpec Development Container - Core + OpenSpec
+# Published to Docker Hub: jpoley/daax-agents-openspec
+#
+# This Dockerfile builds on the CORE layer (daax-agents-core) and adds:
+# - @fission-ai/openspec (specification framework)
+#
+# Includes all AI CLIs from core layer:
+# - Claude Code, Copilot, Codex, Gemini, OpenCode, Kiro
+# - Agent Browser, MCP Inspector
+#
+# Build order:
+#   1. Build base: docker build -f Dockerfile.base -t jpoley/daax-agents-base .
+#   2. Build core: docker build -f Dockerfile.core -t jpoley/daax-agents-core .
+#   3. Build openspec: docker build -f Dockerfile.openspec -t jpoley/daax-agents-openspec .
+#
+# Usage:
+#   docker pull jpoley/daax-agents-openspec:latest
+#   Or reference in devcontainer.json: "image": "jpoley/daax-agents-openspec:latest"
+#
+# Target size: ~1.5GB
+#
+# =============================================================================
+# VERSION TRACKING - Update these when upgrading tools
+# =============================================================================
+# Last updated: 2026-02-21
+# @fission-ai/openspec: latest (from npm)
+# =============================================================================
+
+# Use the core image with AI CLIs
+ARG CORE_IMAGE=jpoley/daax-agents-core:latest
+FROM ${CORE_IMAGE}
+
+# Re-establish environment (inherited from core but making explicit)
+ENV PNPM_HOME="/home/vscode/.local/share/pnpm"
+ENV GOPATH="/home/vscode/go"
+ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:${GOPATH}/bin:/usr/local/bin:${PATH}"
+
+# =============================================================================
+# OPENSPEC - Specification Framework
+# =============================================================================
+# Install @fission-ai/openspec for specification-driven development
+# SECURITY NOTE: Unpinned for MVP. For production hardening, pin to specific version.
+# The install MUST succeed - fail build on error rather than silently continuing.
+# See Copilot review on PR #286 for tracking.
+RUN pnpm install -g @fission-ai/openspec \
+    && echo "openspec installed successfully" \
+    && (openspec --version || echo "Note: openspec installed but may not have --version flag")
+
+# =============================================================================
+# CACHE CLEANUP - Remove all build caches to minimize image size
+# =============================================================================
+RUN echo "=== Cleaning build caches ===" \
+    # uv/pip: wheel cache, http cache, git checkouts
+    && /home/vscode/.local/bin/uv cache clean \
+    && rm -rf /home/vscode/.cache/uv 2>/dev/null || true \
+    && rm -rf /home/vscode/.cache/pip 2>/dev/null || true \
+    # pnpm: content-addressable store (already pruned, but ensure clean)
+    && pnpm store prune 2>/dev/null || true \
+    # npm: cache directory
+    && npm cache clean --force 2>/dev/null || true \
+    # General: temp files, logs, history
+    && rm -rf /tmp/* 2>/dev/null || true \
+    && rm -rf /home/vscode/.npm/_logs 2>/dev/null || true \
+    && rm -rf /home/vscode/.local/state 2>/dev/null || true \
+    && rm -f /home/vscode/.zsh_history 2>/dev/null || true \
+    && rm -f /home/vscode/.bash_history 2>/dev/null || true \
+    && echo "Cache cleanup complete"
+
+# Labels for Docker Hub
+LABEL org.opencontainers.image.title="Daax Agents OpenSpec"
+LABEL org.opencontainers.image.description="Development container with AI coding assistants and @fission-ai/openspec framework"
+LABEL org.opencontainers.image.source="https://github.com/peregrinesummit/daax"
+LABEL org.opencontainers.image.vendor="jpoley"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.base.name="jpoley/daax-agents-core:latest"
+LABEL ai.daax.variant="openspec"
+LABEL ai.daax.includes="core,@fission-ai/openspec"
+
+# Verify installations and print versions for debugging
+RUN echo "=== OpenSpec Layer Installation Verification ===" \
+    && echo "--- Inherited from Core ---" \
+    && echo "Python: $(python --version)" \
+    && echo "Node: $(node --version)" \
+    && echo "pnpm: $(pnpm --version)" \
+    && echo "uv: $(/home/vscode/.local/bin/uv --version)" \
+    && echo "claude: $(timeout 5 claude --version 2>&1 || echo 'not installed')" \
+    && echo "--- OpenSpec Layer Tools ---" \
+    && echo "openspec: $(timeout 5 openspec --version 2>&1 || echo 'not installed')" \
+    && echo "PATH: $PATH"
+
+# Default command
+CMD ["zsh"]

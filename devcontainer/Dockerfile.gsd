@@ -1,0 +1,93 @@
+# Daax GSD Development Container - Core + Get Shit Done
+# Published to Docker Hub: jpoley/daax-agents-gsd
+#
+# This Dockerfile builds on the CORE layer (daax-agents-core) and adds:
+# - get-shit-done-cc (task execution framework for Claude Code)
+#
+# Includes all AI CLIs from core layer:
+# - Claude Code, Copilot, Codex, Gemini, OpenCode, Kiro
+# - Agent Browser, MCP Inspector
+#
+# Build order:
+#   1. Build base: docker build -f Dockerfile.base -t jpoley/daax-agents-base .
+#   2. Build core: docker build -f Dockerfile.core -t jpoley/daax-agents-core .
+#   3. Build gsd: docker build -f Dockerfile.gsd -t jpoley/daax-agents-gsd .
+#
+# Usage:
+#   docker pull jpoley/daax-agents-gsd:latest
+#   Or reference in devcontainer.json: "image": "jpoley/daax-agents-gsd:latest"
+#
+# Target size: ~1.5GB
+#
+# =============================================================================
+# VERSION TRACKING - Update these when upgrading tools
+# =============================================================================
+# Last updated: 2026-02-21
+# get-shit-done-cc: latest (from npm)
+# =============================================================================
+
+# Use the core image with AI CLIs
+ARG CORE_IMAGE=jpoley/daax-agents-core:latest
+FROM ${CORE_IMAGE}
+
+# Re-establish environment (inherited from core but making explicit)
+ENV PNPM_HOME="/home/vscode/.local/share/pnpm"
+ENV GOPATH="/home/vscode/go"
+ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:${GOPATH}/bin:/usr/local/bin:${PATH}"
+
+# =============================================================================
+# GET SHIT DONE - Task Execution Framework
+# =============================================================================
+# Install get-shit-done-cc for task execution with Claude Code
+# This is an opinionated task execution framework that works with Claude Code
+# SECURITY NOTE: Unpinned for MVP. For production hardening, pin to specific version.
+# The install MUST succeed - fail build on error rather than silently continuing.
+# See Copilot review on PR #286 for tracking.
+RUN pnpm install -g get-shit-done-cc \
+    && echo "get-shit-done-cc installed successfully" \
+    && (gsd --version || echo "Note: gsd installed but may not have --version flag")
+
+# =============================================================================
+# CACHE CLEANUP - Remove all build caches to minimize image size
+# =============================================================================
+RUN echo "=== Cleaning build caches ===" \
+    # uv/pip: wheel cache, http cache, git checkouts
+    && /home/vscode/.local/bin/uv cache clean \
+    && rm -rf /home/vscode/.cache/uv 2>/dev/null || true \
+    && rm -rf /home/vscode/.cache/pip 2>/dev/null || true \
+    # pnpm: content-addressable store (already pruned, but ensure clean)
+    && pnpm store prune 2>/dev/null || true \
+    # npm: cache directory
+    && npm cache clean --force 2>/dev/null || true \
+    # General: temp files, logs, history
+    && rm -rf /tmp/* 2>/dev/null || true \
+    && rm -rf /home/vscode/.npm/_logs 2>/dev/null || true \
+    && rm -rf /home/vscode/.local/state 2>/dev/null || true \
+    && rm -f /home/vscode/.zsh_history 2>/dev/null || true \
+    && rm -f /home/vscode/.bash_history 2>/dev/null || true \
+    && echo "Cache cleanup complete"
+
+# Labels for Docker Hub
+LABEL org.opencontainers.image.title="Daax Agents GSD"
+LABEL org.opencontainers.image.description="Development container with AI coding assistants and get-shit-done task execution framework"
+LABEL org.opencontainers.image.source="https://github.com/peregrinesummit/daax"
+LABEL org.opencontainers.image.vendor="jpoley"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.base.name="jpoley/daax-agents-core:latest"
+LABEL ai.daax.variant="gsd"
+LABEL ai.daax.includes="core,get-shit-done-cc"
+
+# Verify installations and print versions for debugging
+RUN echo "=== GSD Layer Installation Verification ===" \
+    && echo "--- Inherited from Core ---" \
+    && echo "Python: $(python --version)" \
+    && echo "Node: $(node --version)" \
+    && echo "pnpm: $(pnpm --version)" \
+    && echo "uv: $(/home/vscode/.local/bin/uv --version)" \
+    && echo "claude: $(timeout 5 claude --version 2>&1 || echo 'not installed')" \
+    && echo "--- GSD Layer Tools ---" \
+    && echo "gsd: $(which gsd >/dev/null 2>&1 && echo 'installed' || echo 'not installed')" \
+    && echo "PATH: $PATH"
+
+# Default command
+CMD ["zsh"]

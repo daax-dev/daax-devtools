@@ -1,0 +1,227 @@
+# Daax Base Development Container
+# Published to Docker Hub: jpoley/daax-agents-base
+#
+# This is the BASE layer containing stable system dependencies:
+# - Python 3.x + uv package manager (Debian bookworm-slim base)
+# - Node.js 22 + pnpm
+# - Developer utilities (tmux, btop, fzf, neovim)
+# - GitHub CLI
+# - oh-my-posh prompt
+#
+# This layer changes INFREQUENTLY and should be pulled from Docker Hub.
+# AI coding CLIs are installed in the tools layer (Dockerfile).
+#
+# Multi-arch support: linux/amd64, linux/arm64
+#
+# Usage:
+#   docker pull jpoley/daax-agents-base:latest
+#   Or build locally: docker build -f Dockerfile.base -t jpoley/daax-agents-base .
+FROM node:22-bookworm-slim
+
+# Install additional system dependencies not in DHI or needed explicitly
+# DHI dev image provides: gcc, make, libc-dev, libffi-dev, linux-headers,
+# openssl-dev, and other build essentials
+# We add: git, nodejs/npm for AI CLI tools, shell utilities
+# IMPORTANT: libc-utils is required for VS Code Server (provides getconf, getent)
+# NOTE: No "go" package - binaries copied from builder stage
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    curl \
+    git \
+    python3 \
+    python3-pip \
+    zsh \
+    sudo \
+    jq \
+    tar \
+    gzip \
+    # Developer tools
+    tmux \
+    btop \
+    fzf \
+    neovim \
+    asciinema \
+    # Locale support
+    locales \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/bin/python3 /usr/bin/python
+
+# =============================================================================
+# UTF-8 LOCALE SETUP - Required for proper Unicode rendering (Claude Code logo, etc.)
+# =============================================================================
+# Generate en_US.UTF-8 locale for:
+# - Claude Code ASCII art logo (uses Unicode block characters)
+# - Progress bars and UI elements
+# - Proper text rendering in terminal applications
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
+    && locale-gen
+
+# Set UTF-8 locale environment variables
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+ENV LANGUAGE=en_US.UTF-8
+
+# Upgrade npm to latest version to fix vulnerabilities in npm's internal dependencies
+RUN npm install -g npm@latest \
+    && npm cache clean --force
+
+# Install pnpm globally (after npm upgrade to use patched npm)
+RUN npm install -g pnpm
+
+# Install GitHub CLI from official releases with checksum verification
+# SECURITY: Alpine's github-cli package has outdated dependencies
+# Version: 2.87.2 (2026-02-20) - Latest stable
+ARG GH_VERSION=2.87.2
+ARG GH_SHA256_AMD64=18360b2243e3bf9c1457035db45f6400ae4cf957dcc2f674e69717b4e0b14d55
+ARG GH_SHA256_ARM64=e37efdd8ec98425f44175040b5037c767bbd49f192aed1de5aabc4b4ea9e22c5
+ARG TARGETARCH
+RUN case "${TARGETARCH}" in \
+        "amd64") GH_ARCH="linux_amd64"; GH_SHA256="${GH_SHA256_AMD64}" ;; \
+        "arm64") GH_ARCH="linux_arm64"; GH_SHA256="${GH_SHA256_ARM64}" ;; \
+        *) echo "Unsupported arch: ${TARGETARCH}" && exit 1 ;; \
+    esac \
+    && curl -sL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_${GH_ARCH}.tar.gz" -o /tmp/gh.tar.gz \
+    && echo "${GH_SHA256}  /tmp/gh.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/gh.tar.gz -C /tmp \
+    && mv "/tmp/gh_${GH_VERSION}_${GH_ARCH}/bin/gh" /usr/local/bin/gh \
+    && chmod +x /usr/local/bin/gh \
+    && rm -rf /tmp/gh* \
+    && gh --version
+
+
+# Create vscode user (matching devcontainer convention)
+# Note: node:22-bookworm-slim already has uid/gid 1000 (node user), so we reuse it
+RUN usermod -l vscode -d /home/vscode -m node \
+    && groupmod -n vscode node \
+    && usermod -s /bin/zsh vscode \
+    && echo "vscode ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/vscode \
+    && chmod 0440 /etc/sudoers.d/vscode
+
+# Switch to vscode user for remaining setup
+USER vscode
+WORKDIR /home/vscode
+
+# Set up environment variables
+ENV PNPM_HOME="/home/vscode/.local/share/pnpm"
+ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:/usr/local/bin:${PATH}"
+
+# Install uv (Python package manager) with SHA256 checksum verification
+# Version: 0.10.4 (2026-02-21) - Latest stable
+# Checksums for GNU libc tarballs from uv 0.10.4 release assets:
+#   - linux/amd64: uv-x86_64-unknown-linux-gnu.tar.gz
+#   - linux/arm64: uv-aarch64-unknown-linux-gnu.tar.gz
+# See: https://github.com/astral-sh/uv/releases/download/0.10.4/
+ARG UV_VERSION=0.10.4
+ARG UV_SHA256_AMD64=6b52a47358deea1c5e173278bf46b2b489747a59ae31f2a4362ed5c6c1c269f7
+ARG UV_SHA256_ARM64=c84a6e6405715caa6e2f5ef8e5f29a5d0bc558a954e9f1b5c082b9d4708c222e
+ARG TARGETARCH
+RUN mkdir -p /home/vscode/.local/bin \
+    && case "${TARGETARCH}" in \
+        "amd64") UV_ARCH="x86_64-unknown-linux-gnu"; UV_SHA256="${UV_SHA256_AMD64}" ;; \
+        "arm64") UV_ARCH="aarch64-unknown-linux-gnu"; UV_SHA256="${UV_SHA256_ARM64}" ;; \
+        *) echo "Unsupported arch: ${TARGETARCH}" && exit 1 ;; \
+    esac \
+    && curl -sL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${UV_ARCH}.tar.gz" -o /tmp/uv.tar.gz \
+    && echo "${UV_SHA256}  /tmp/uv.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/uv.tar.gz --strip-components=1 -C /home/vscode/.local/bin \
+    && chmod +x /home/vscode/.local/bin/uv \
+    && if [ -f /home/vscode/.local/bin/uvx ]; then chmod +x /home/vscode/.local/bin/uvx; fi \
+    && rm -rf /tmp/uv* \
+    && /home/vscode/.local/bin/uv --version
+
+# Install oh-my-posh with pinned version and SHA256 checksum verification
+# Version: 29.5.0 (2026-02-21) - Latest stable
+ARG OMP_VERSION=29.5.0
+ARG OMP_SHA256_AMD64=8265f10034027271681bc0dbd2242ca554a863995db2c4da885e9926bcc6ec69
+ARG OMP_SHA256_ARM64=d1caf6b7e11523b01017dee5e9c59a1e8d94c39bd91e2be423458104367f62b5
+RUN case "${TARGETARCH}" in \
+        "amd64") OMP_ARCH="amd64"; OMP_SHA256="${OMP_SHA256_AMD64}" ;; \
+        "arm64") OMP_ARCH="arm64"; OMP_SHA256="${OMP_SHA256_ARM64}" ;; \
+        *) echo "Unsupported arch: ${TARGETARCH}" && exit 1 ;; \
+    esac \
+    && curl -sL "https://github.com/JanDeDobbeleer/oh-my-posh/releases/download/v${OMP_VERSION}/posh-linux-${OMP_ARCH}" -o /tmp/oh-my-posh \
+    && echo "${OMP_SHA256}  /tmp/oh-my-posh" | sha256sum -c - \
+    && mv /tmp/oh-my-posh /home/vscode/.local/bin/oh-my-posh \
+    && chmod +x /home/vscode/.local/bin/oh-my-posh \
+    && /home/vscode/.local/bin/oh-my-posh --version
+
+# Copy custom oh-my-posh theme
+COPY --chown=vscode:vscode daax.omp.json /home/vscode/.config/daax.omp.json
+
+# Configure pnpm global bin directory
+RUN mkdir -p "$PNPM_HOME" && pnpm config set global-bin-dir "$PNPM_HOME"
+
+# Install Python development tools via uv (stable tools)
+RUN /home/vscode/.local/bin/uv tool install ruff \
+    && /home/vscode/.local/bin/uv tool install pytest \
+    && /home/vscode/.local/bin/uv tool install claude-code-transcripts
+
+# Create shell configuration for PATH, locale, and transcript settings
+RUN mkdir -p /home/vscode/.config/claude \
+    && echo '# Daax PATH setup' > /home/vscode/.zshenv \
+    && echo 'export PNPM_HOME="/home/vscode/.local/share/pnpm"' >> /home/vscode/.zshenv \
+    && echo 'export PATH="/home/vscode/.local/bin:$PNPM_HOME:/usr/local/bin:$PATH"' >> /home/vscode/.zshenv \
+    && echo '' >> /home/vscode/.zshenv \
+    && echo '# UTF-8 locale for proper Unicode rendering (Claude Code logo, etc.)' >> /home/vscode/.zshenv \
+    && echo 'export LANG=en_US.UTF-8' >> /home/vscode/.zshenv \
+    && echo 'export LC_ALL=en_US.UTF-8' >> /home/vscode/.zshenv \
+    && echo 'export LANGUAGE=en_US.UTF-8' >> /home/vscode/.zshenv \
+    && echo '' >> /home/vscode/.zshenv \
+    && echo '# Shared logs directory visible to host' >> /home/vscode/.zshenv \
+    && echo 'export DAAX_LOGS_DIR="/workspace/.logs"' >> /home/vscode/.zshenv \
+    && echo 'export CLAUDE_TRANSCRIPTS_DIR="/workspace/.logs/transcripts"' >> /home/vscode/.zshenv
+
+# Configure tmux to use zsh as default shell
+RUN echo '# Use zsh as default shell' > /home/vscode/.tmux.conf \
+    && echo 'set-option -g default-shell /bin/zsh' >> /home/vscode/.tmux.conf \
+    && echo 'set-option -g default-command /bin/zsh' >> /home/vscode/.tmux.conf
+
+# Create .zshrc with oh-my-posh initialization
+RUN touch /home/vscode/.zshrc \
+    && echo '' >> /home/vscode/.zshrc \
+    && echo '# Oh My Posh prompt initialization (daax theme)' >> /home/vscode/.zshrc \
+    && echo 'eval "$(oh-my-posh init zsh --config ~/.config/daax.omp.json 2>/dev/null || echo "")"' >> /home/vscode/.zshrc \
+    && echo '' >> /home/vscode/.zshrc \
+    && echo '# AI coding agent YOLO aliases are defined in post-create.sh (commented out by default).' >> /home/vscode/.zshrc \
+    && echo '# See that script for the canonical, up-to-date alias definitions.' >> /home/vscode/.zshrc \
+    && echo '' >> /home/vscode/.zshrc \
+    && echo '# Claude Code transcript export helper' >> /home/vscode/.zshrc \
+    && echo '# Exports transcripts to shared workspace path visible to host' >> /home/vscode/.zshrc \
+    && echo 'transcript-export() {' >> /home/vscode/.zshrc \
+    && echo '  mkdir -p "${CLAUDE_TRANSCRIPTS_DIR:-/workspace/.logs/transcripts}"' >> /home/vscode/.zshrc \
+    && echo '  claude-code-transcripts -o "${CLAUDE_TRANSCRIPTS_DIR:-/workspace/.logs/transcripts}" "$@"' >> /home/vscode/.zshrc \
+    && echo '}' >> /home/vscode/.zshrc \
+    && echo 'alias cct="transcript-export"' >> /home/vscode/.zshrc
+
+# Clean caches
+RUN /home/vscode/.local/bin/uv cache clean \
+    && rm -rf /home/vscode/.cache/uv 2>/dev/null || true \
+    && rm -rf /tmp/* 2>/dev/null || true
+
+# Labels for Docker Hub
+LABEL org.opencontainers.image.title="Daax Agents Base"
+LABEL org.opencontainers.image.description="Base development container with Python, Node.js, and developer utilities"
+LABEL org.opencontainers.image.source="https://github.com/peregrinesummit/daax"
+LABEL org.opencontainers.image.vendor="jpoley"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.base.name="node:22-bookworm-slim"
+
+# Verify base installations
+RUN echo "=== Base Installation Verification ===" \
+    && echo "Python: $(python --version)" \
+    && echo "Node: $(node --version)" \
+    && echo "npm: $(npm --version)" \
+    && echo "pnpm: $(pnpm --version)" \
+    && echo "uv: $(/home/vscode/.local/bin/uv --version)" \
+    && echo "gh: $(gh --version | head -1)" \
+    && echo "oh-my-posh: $(oh-my-posh --version)" \
+    && echo "--- Developer Tools ---" \
+    && echo "tmux: $(tmux -V)" \
+    && echo "nvim: $(nvim --version | head -1)" \
+    && echo "fzf: $(fzf --version)" \
+    && echo "--- Locale (UTF-8 for Unicode support) ---" \
+    && echo "LANG: $LANG" \
+    && echo "LC_ALL: $LC_ALL"
+
+# Default command
+CMD ["zsh"]

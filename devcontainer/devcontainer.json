@@ -1,0 +1,139 @@
+{
+  "name": "Daax Dev Environment",
+
+  // ==========================================================================
+  // IMAGE OPTIONS - Choose ONE of the following:
+  // ==========================================================================
+  //
+  // OPTION 1: Base image + features (slower startup, always up-to-date)
+  // - Uses base image and applies features at container creation time
+  // - Slower startup but always gets latest features
+  //
+  // OPTION 2: Prebuilt image (faster startup, requires manual rebuild)
+  // - Uses fully baked image with all features included
+  // - Much faster startup but requires running prebuild.sh to update
+  // - To create: .devcontainer/prebuild.sh --push
+  //
+  // Currently using: OPTION 1 (base + features)
+  // To switch to prebuilt: comment out "features" block and change image to:
+  //   "image": "jpoley/daax-devcontainer:latest"
+
+  //  "image": "jpoley/daax-agents:latest",
+
+  // ==========================================================================
+
+  "image": "jpoley/daax-agents:latest",
+  // Features applied on top of base image (comment out if using prebuilt image)
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "configureZshAsDefaultShell": true,
+      "username": "vscode",
+      "userUid": "1000",
+      "userGid": "1000"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml",
+        "yzhang.markdown-all-in-one",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens",
+        "usernamehw.errorlens",
+        "streetsidesoftware.code-spell-checker"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+        "python.terminal.activateEnvironment": false,
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestArgs": ["tests"],
+        "python.linting.enabled": false,
+        "python.formatting.provider": "none",
+        "[python]": {
+          "editor.formatOnSave": true,
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit",
+            "source.fixAll": "explicit"
+          }
+        },
+        "ruff.enable": true,
+        "ruff.organizeImports": true,
+        "ruff.fixAll": true,
+        "editor.rulers": [88],
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "git.autofetch": true,
+        "git.confirmSync": false
+      }
+    }
+  },
+
+  "mounts": [
+    "source=${localWorkspaceFolder}/backlog,target=/workspaces/daax/backlog,type=bind,consistency=cached"
+    // SPIRE Workload API socket mount - enables SPIFFE credential acquisition
+    // The host SPIRE agent exposes this socket for workload attestation
+    // Commented out: requires SPIRE agent running on host at /run/spire/sockets/agent.sock
+    // "source=/run/spire/sockets/agent.sock,target=/run/spire/sockets/agent.sock,type=bind"
+  ],
+
+  // Container labels for SPIRE workload attestation (D025 format)
+  "containerLabels": {
+    "workload": "daax-agents",
+    "workload_type": "devcontainer",
+    "spiffe.enabled": "true"
+  },
+
+  "remoteEnv": {
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    "OPENAI_API_KEY": "${localEnv:OPENAI_API_KEY}",
+    "GOOGLE_API_KEY": "${localEnv:GOOGLE_API_KEY}",
+    "PYTHONUNBUFFERED": "1",
+    "UV_SYSTEM_PYTHON": "1",
+    "VIRTUAL_ENV": "/workspaces/daax/.venv",
+    "PATH": "/workspaces/daax/.venv/bin:/home/vscode/.local/share/pnpm:/home/vscode/.local/bin:${containerEnv:PATH}",
+    // Daax capture feature flags for the Claude logging wrapper (wrap.mjs):
+    // - DAAX_CAPTURE_TTY: When "true", wrap.mjs captures Claude Code terminal sessions
+    // - DAAX_CAPTURE_HOOKS: When "true", enables hook-based capture extensions
+    // - DAAX_CAPTURE_NETWORK: Set to "false" because Level 3 network logging is
+    //   currently disabled; this flag is retained for compatibility and potential
+    //   future re-enablement of network capture via mitmproxy
+    "DAAX_CAPTURE_TTY": "true",
+    "DAAX_CAPTURE_HOOKS": "true",
+    "DAAX_CAPTURE_NETWORK": "false",
+    "LOG_DIR": ".logs",
+    // HTTP_PROXY and HTTPS_PROXY commented out to avoid tool confusion with empty values
+    // Uncomment and set values when Level 3 network logging is enabled
+    // "HTTP_PROXY": "http://localhost:8080",
+    // "HTTPS_PROXY": "http://localhost:8080",
+    "NO_PROXY": "localhost,127.0.0.1",
+    // SPIFFE/SPIRE configuration for workload identity
+    "SPIFFE_ENDPOINT_SOCKET": "unix:///run/spire/sockets/agent.sock",
+    "SPIFFE_TRUST_DOMAIN": "poley.dev",
+    // Token exchange endpoint for SPIFFE->OIDC conversion
+    "SPIFFE_TOKEN_EXCHANGE_URL": "https://auth.poley.dev/api/oidc/token"
+  },
+
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
+  "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+  "postAttachCommand": "echo '--- Daax Dev Environment Ready ---' && uv --version && python --version",
+
+  "forwardPorts": [],
+
+  "containerEnv": {
+    "TERM": "xterm-256color",
+    "PNPM_HOME": "/home/vscode/.local/share/pnpm"
+  },
+
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/daax"
+}

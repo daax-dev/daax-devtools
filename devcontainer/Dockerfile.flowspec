@@ -1,0 +1,112 @@
+# Daax Flowspec Development Container - Core + Flowspec + Backlog.md
+# Published to Docker Hub: jpoley/daax-agents-flowspec
+#
+# This Dockerfile builds on the CORE layer (daax-agents-core) and adds:
+# - Flowspec CLI (specification-driven development)
+# - Backlog.md (task management)
+#
+# Includes all AI CLIs from core layer:
+# - Claude Code, Copilot, Codex, Gemini, OpenCode, Kiro
+# - Agent Browser, MCP Inspector
+#
+# Build order:
+#   1. Build base: docker build -f Dockerfile.base -t jpoley/daax-agents-base .
+#   2. Build core: docker build -f Dockerfile.core -t jpoley/daax-agents-core .
+#   3. Build flowspec: docker build -f Dockerfile.flowspec -t jpoley/daax-agents-flowspec .
+#
+# Usage:
+#   docker pull jpoley/daax-agents-flowspec:latest
+#   Or reference in devcontainer.json: "image": "jpoley/daax-agents-flowspec:latest"
+#
+# Target size: ~1.8GB
+#
+# =============================================================================
+# VERSION TRACKING - Update these when upgrading tools
+# =============================================================================
+# Last updated: 2026-02-21
+# Flowspec: v0.4.004 (pinned)
+# Backlog.md: backlog.md (latest - needs ignore-scripts=false for postinstall)
+# =============================================================================
+
+# Use the core image with AI CLIs
+ARG CORE_IMAGE=jpoley/daax-agents-core:latest
+FROM ${CORE_IMAGE}
+
+# Re-establish environment (inherited from core but making explicit)
+ENV PNPM_HOME="/home/vscode/.local/share/pnpm"
+ENV GOPATH="/home/vscode/go"
+ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:${GOPATH}/bin:/usr/local/bin:${PATH}"
+
+# =============================================================================
+# TASK MANAGEMENT - Backlog.md
+# =============================================================================
+# Install backlog.md for task management
+# Note: Base image is now Debian (glibc), so no gcompat/musl workarounds needed
+# SECURITY NOTE: Unpinned for MVP - backlog.md is a first-party tool under active development.
+# For production hardening, pin to specific version: pnpm install -g backlog.md@x.x.x
+# See Copilot review on PR #286 for tracking.
+RUN pnpm install -g backlog.md \
+    && echo "backlog.md installed successfully" \
+    && backlog --version
+
+# =============================================================================
+# FLOWSPEC CLI (from GitHub)
+# =============================================================================
+# Install flowspec CLI from GitHub
+# Note: 'flowspec' is a SEPARATE project (jpoley/flowspec) providing specification-driven development CLI.
+# CRITICAL: Must succeed - this is an essential tool for this variant
+#
+# SECURITY: Pinned to immutable commit SHA to prevent supply chain attacks.
+# The mutable tag v0.4.004 corresponds to this commit. When upgrading, verify
+# the new commit SHA against the release tag before updating here.
+ARG FLOWSPEC_VERSION=v0.4.004
+ARG FLOWSPEC_COMMIT_SHA=c36dbeb3ffc871100cd80b7f79c249c7ab2d43c0
+RUN /home/vscode/.local/bin/uv tool install git+https://github.com/jpoley/flowspec.git@${FLOWSPEC_COMMIT_SHA} \
+    && echo "flowspec installed successfully (commit: ${FLOWSPEC_COMMIT_SHA}, tag: ${FLOWSPEC_VERSION})" \
+    && flowspec --version
+
+# =============================================================================
+# CACHE CLEANUP - Remove all build caches to minimize image size
+# =============================================================================
+RUN echo "=== Cleaning build caches ===" \
+    # uv/pip: wheel cache, http cache, git checkouts
+    && /home/vscode/.local/bin/uv cache clean \
+    && rm -rf /home/vscode/.cache/uv 2>/dev/null || true \
+    && rm -rf /home/vscode/.cache/pip 2>/dev/null || true \
+    # pnpm: content-addressable store (already pruned, but ensure clean)
+    && pnpm store prune 2>/dev/null || true \
+    # npm: cache directory
+    && npm cache clean --force 2>/dev/null || true \
+    # General: temp files, logs, history
+    && rm -rf /tmp/* 2>/dev/null || true \
+    && rm -rf /home/vscode/.npm/_logs 2>/dev/null || true \
+    && rm -rf /home/vscode/.local/state 2>/dev/null || true \
+    && rm -f /home/vscode/.zsh_history 2>/dev/null || true \
+    && rm -f /home/vscode/.bash_history 2>/dev/null || true \
+    && echo "Cache cleanup complete"
+
+# Labels for Docker Hub
+LABEL org.opencontainers.image.title="Daax Agents Flowspec"
+LABEL org.opencontainers.image.description="Development container with AI coding assistants and specification-driven development (flowspec + backlog.md)"
+LABEL org.opencontainers.image.source="https://github.com/peregrinesummit/daax"
+LABEL org.opencontainers.image.vendor="jpoley"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.base.name="jpoley/daax-agents-core:latest"
+LABEL ai.daax.variant="flowspec"
+LABEL ai.daax.includes="core,flowspec,backlog.md"
+
+# Verify installations and print versions for debugging
+RUN echo "=== Flowspec Layer Installation Verification ===" \
+    && echo "--- Inherited from Core ---" \
+    && echo "Python: $(python --version)" \
+    && echo "Node: $(node --version)" \
+    && echo "pnpm: $(pnpm --version)" \
+    && echo "uv: $(/home/vscode/.local/bin/uv --version)" \
+    && echo "claude: $(timeout 5 claude --version 2>&1 || echo 'not installed')" \
+    && echo "--- Flowspec Layer Tools ---" \
+    && echo "flowspec: $(flowspec --version 2>&1 || echo 'not installed')" \
+    && echo "backlog: $(timeout 5 backlog --version 2>&1 || echo 'not installed')" \
+    && echo "PATH: $PATH"
+
+# Default command
+CMD ["zsh"]

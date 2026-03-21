@@ -1,0 +1,11 @@
+{
+  "name": "daax-devtools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Devcontainer and AI agents image tooling for Daax",
+  "scripts": {
+    "agents:build": "docker build -t jpoley/daax-agents:latest devcontainer",
+    "agents:push": "docker push jpoley/daax-agents:latest",
+    "agents:release": "bun run agents:build && bun run agents:push"
+  }
+}
