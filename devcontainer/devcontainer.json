@@ -14,15 +14,17 @@
   // - Much faster startup but requires running prebuild.sh to update
   // - To create: .devcontainer/prebuild.sh --push
   //
-  // Currently using: OPTION 1 (base + features)
-  // To switch to prebuilt: comment out "features" block and change image to:
-  //   "image": "jpoley/daax-devcontainer:latest"
-
-  //  "image": "jpoley/daax-agents:latest",
-
+  // REGISTRY OPTIONS:
+  //   Docker Hub: "image": "jpoley/daax-agents:latest"
+  //   GitHub Container Registry: "image": "ghcr.io/daax-dev/daax-web:latest"
+  //
+  // Currently using: Docker Hub
+  //
   // ==========================================================================
 
   "image": "jpoley/daax-agents:latest",
+  // Alternative: Use GHCR image instead
+  // "image": "ghcr.io/daax-dev/daax-web:latest",
   // Features applied on top of base image (comment out if using prebuilt image)
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
