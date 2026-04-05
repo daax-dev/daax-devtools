@@ -170,11 +170,14 @@ LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.base.name="jpoley/daax-agents-base:latest"
 
 # Version labels for installed AI CLI tools
-LABEL org.daax.claude-code.version="2.1.92"
-LABEL org.daax.copilot.version="1.0.18"
-LABEL org.daax.codex.version="0.118.0"
-LABEL org.daax.gemini.version="0.36.0"
-LABEL org.daax.gsd.version="1.32.0"
+# intended-version labels track what version was requested at build time.
+# Actual installed versions may differ if install failed (tools are best-effort).
+# Use `docker inspect --format '{{json .Config.Labels}}' <image>` to view.
+LABEL org.daax.claude-code.intended-version="2.1.92"
+LABEL org.daax.copilot.intended-version="1.0.18"
+LABEL org.daax.codex.intended-version="0.118.0"
+LABEL org.daax.gemini.intended-version="0.36.0"
+LABEL org.daax.gsd.intended-version="1.32.0"
 
 # Verify installations and print versions for debugging
 # Note: Some CLIs may hang on --version, so we use timeout for safety:

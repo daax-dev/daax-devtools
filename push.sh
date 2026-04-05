@@ -33,12 +33,25 @@ REGISTRY="dockerhub"
 DOCKERHUB_REGISTRY="docker.io"
 GHCR_REGISTRY="ghcr.io"
 AGENTS_IMAGE="jpoley/daax-agents"
-GHCR_IMAGE="daax-dev/daax-web"
+GHCR_IMAGE="daax-dev/daax-agents"
 TAG="latest"
 PLATFORMS="linux/amd64"  # Add linux/arm64 if needed
 
 show_help() {
-    head -12 "$0" | grep -E '^#' | sed 's/^# //' | sed 's/^#//'
+    cat <<'EOF'
+Push daax-agents devcontainer image to Docker Hub or GHCR
+
+Usage:
+  ./push.sh                     Push to Docker Hub with :latest tag
+  ./push.sh --tag v1.0.0        Push with specific version tag
+  ./push.sh --registry ghcr     Push to GitHub Container Registry (ghcr.io/daax-dev/daax-agents)
+  ./push.sh --help              Show this help
+
+Prerequisites:
+  - Docker Buildx installed (for multi-arch builds)
+  - Logged in to Docker Hub: docker login
+  - For GHCR: docker login ghcr.io -u USERNAME -p GITHUB_TOKEN
+EOF
     exit 0
 }
 
