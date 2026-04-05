@@ -1,16 +1,18 @@
 #!/bin/bash
-# Push daax-agents devcontainer image to Docker Hub
+# Push daax-agents devcontainer image to Docker Hub or GHCR
 #
 # This script builds and pushes the AI agents devcontainer image.
 # Used by daax-cli and daax-web for AI coding sessions.
 #
 # Usage:
-#   ./push.sh              # Push to Docker Hub with :latest tag
-#   ./push.sh --tag v1.0.0 # Push with specific version tag
+#   ./push.sh                     # Push to Docker Hub with :latest tag
+#   ./push.sh --tag v1.0.0        # Push with specific version tag
+#   ./push.sh --registry ghcr     # Push to GitHub Container Registry
 #
 # Prerequisites:
 #   - Docker Buildx installed (for multi-arch builds)
 #   - Logged in to Docker Hub: docker login
+#   - For GHCR: docker login ghcr.io -u USERNAME
 
 set -euo pipefail
 
@@ -27,8 +29,11 @@ error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 success() { echo -e "${GREEN}[OK]${NC} $1"; }
 
 # Defaults
+REGISTRY="dockerhub"
 DOCKERHUB_REGISTRY="docker.io"
+GHCR_REGISTRY="ghcr.io"
 AGENTS_IMAGE="jpoley/daax-agents"
+GHCR_IMAGE="daax-dev/daax-web"
 TAG="latest"
 PLATFORMS="linux/amd64"  # Add linux/arm64 if needed
 
@@ -70,21 +75,36 @@ setup_builder() {
 }
 
 push_agents_image() {
+    local target_registry
+    local target_image
+    local full_image_ref
+
+    if [[ "${REGISTRY}" == "ghcr" ]]; then
+        target_registry="${GHCR_REGISTRY}"
+        target_image="${GHCR_IMAGE}"
+    else
+        target_registry="${DOCKERHUB_REGISTRY}"
+        target_image="${AGENTS_IMAGE}"
+    fi
+
+    full_image_ref="${target_registry}/${target_image}:${TAG}"
+
     log "Building and pushing agents image..."
-    log "  Registry: ${DOCKERHUB_REGISTRY}/${AGENTS_IMAGE}"
+    log "  Registry: ${target_registry}"
+    log "  Image: ${target_image}"
     log "  Tag: ${TAG}"
     log "  Platforms: ${PLATFORMS}"
 
     docker buildx build \
         --platform "${PLATFORMS}" \
-        --tag "${DOCKERHUB_REGISTRY}/${AGENTS_IMAGE}:${TAG}" \
+        --tag "${full_image_ref}" \
         --push \
-        --cache-from "type=registry,ref=${DOCKERHUB_REGISTRY}/${AGENTS_IMAGE}:buildcache" \
-        --cache-to "type=registry,ref=${DOCKERHUB_REGISTRY}/${AGENTS_IMAGE}:buildcache,mode=max" \
+        --cache-from "type=registry,ref=${target_registry}/${target_image}:buildcache" \
+        --cache-to "type=registry,ref=${target_registry}/${target_image}:buildcache,mode=max" \
         --file devcontainer/Dockerfile \
         devcontainer
 
-    success "Pushed ${DOCKERHUB_REGISTRY}/${AGENTS_IMAGE}:${TAG}"
+    success "Pushed ${full_image_ref}"
 }
 
 # Parse arguments
@@ -108,6 +128,19 @@ while [[ $# -gt 0 ]]; do
             PLATFORMS="$2"
             shift 2
             ;;
+        --registry)
+            if [[ $# -lt 2 ]]; then
+                error "Missing value for --registry"
+                echo "Use --help for usage information"
+                exit 1
+            fi
+            REGISTRY="$2"
+            if [[ "${REGISTRY}" != "dockerhub" && "${REGISTRY}" != "ghcr" ]]; then
+                error "Invalid registry: ${REGISTRY}. Must be 'dockerhub' or 'ghcr'"
+                exit 1
+            fi
+            shift 2
+            ;;
         --help|-h)
             show_help
             ;;
@@ -127,7 +160,14 @@ echo "╚═══════════════════════�
 echo ""
 
 check_buildx
-check_auth "$DOCKERHUB_REGISTRY"
+
+# Check auth for the appropriate registry
+if [[ "${REGISTRY}" == "ghcr" ]]; then
+    check_auth "$GHCR_REGISTRY"
+else
+    check_auth "$DOCKERHUB_REGISTRY"
+fi
+
 setup_builder
 
 push_agents_image

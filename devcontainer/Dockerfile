@@ -25,17 +25,17 @@
 # =============================================================================
 # VERSION TRACKING - Update these when upgrading AI CLI tools
 # =============================================================================
-# Last updated: 2026-02-21
+# Last updated: 2026-04-05
 # Flowspec: v0.4.004 (pinned)
 # Backlog.md: backlog.md (latest - needs ignore-scripts=false for postinstall)
-# Claude Code: @anthropic-ai/claude-code (latest)
-# GitHub Copilot: @github/copilot (NEW - migrated from @githubnext/github-copilot-cli)
-# OpenAI Codex: @openai/codex (latest)
-# Google Gemini: @google/gemini-cli (latest)
+# Claude Code: @anthropic-ai/claude-code@2.1.92
+# GitHub Copilot: @github/copilot@1.0.18
+# OpenAI Codex: @openai/codex@0.118.0
+# Google Gemini: @google/gemini-cli@0.36.0
 # Agent Browser: agent-browser (latest)
 # MCP Inspector: @modelcontextprotocol/inspector (latest) - for debugging MCP servers
 # Kiro CLI: kiro-cli (latest) - AWS AI coding agent (curl installer)
-# Get Shit Done: get-shit-done-cc (latest) - Meta-prompting system for Claude Code
+# Get Shit Done: get-shit-done-cc@1.32.0 - Meta-prompting system for Claude Code
 # =============================================================================
 
 # Use the base image with all stable dependencies
@@ -103,14 +103,14 @@ RUN set -eu; \
 # See post-create.sh for runtime installation with package existence checks
 # IMPORTANT: Configure pnpm global-bin-dir to avoid "not in PATH" errors
 RUN pnpm config set global-bin-dir "${PNPM_HOME}" \
-    && pnpm install -g @anthropic-ai/claude-code || echo "Note: Claude Code CLI not installed (optional - may require auth)" \
-    && pnpm install -g @github/copilot || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" \
-    && pnpm install -g @openai/codex || echo "Note: OpenAI Codex CLI not installed (optional - requires ChatGPT subscription)" \
-    && pnpm install -g @google/gemini-cli || echo "Note: Gemini CLI not installed (optional - package may not be published yet)" \
+    && pnpm install -g @anthropic-ai/claude-code@2.1.92 || echo "Note: Claude Code CLI not installed (optional - may require auth)" \
+    && pnpm install -g @github/copilot@1.0.18 || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" \
+    && pnpm install -g @openai/codex@0.118.0 || echo "Note: OpenAI Codex CLI not installed (optional - requires ChatGPT subscription)" \
+    && pnpm install -g @google/gemini-cli@0.36.0 || echo "Note: Gemini CLI not installed (optional - package may not be published yet)" \
     && pnpm install -g opencode-ai || echo "Note: OpenCode CLI not installed (optional - package may not be published yet)" \
     && pnpm install -g agent-browser || echo "Note: Agent Browser not installed (optional)" \
     && pnpm install -g @modelcontextprotocol/inspector || echo "Note: MCP Inspector not installed (optional)" \
-    && pnpm install -g get-shit-done-cc@1.9.13 || echo "Note: Get Shit Done not installed (optional)" \
+    && pnpm install -g get-shit-done-cc@1.32.0 || echo "Note: Get Shit Done not installed (optional)" \
     && pnpm approve-builds -g node-pty protobufjs tree-sitter-bash 2>/dev/null || echo "Note: pnpm approve-builds skipped (packages may not be installed)" \
     && pnpm rebuild -g 2>/dev/null || echo "Note: pnpm rebuild skipped (optional - some AI CLI packages may not be fully rebuilt)"
 
@@ -168,6 +168,13 @@ LABEL org.opencontainers.image.source="https://github.com/jpoley/daax"
 LABEL org.opencontainers.image.vendor="jpoley"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.base.name="jpoley/daax-agents-base:latest"
+
+# Version labels for installed AI CLI tools
+LABEL org.daax.claude-code.version="2.1.92"
+LABEL org.daax.copilot.version="1.0.18"
+LABEL org.daax.codex.version="0.118.0"
+LABEL org.daax.gemini.version="0.36.0"
+LABEL org.daax.gsd.version="1.32.0"
 
 # Verify installations and print versions for debugging
 # Note: Some CLIs may hang on --version, so we use timeout for safety:
