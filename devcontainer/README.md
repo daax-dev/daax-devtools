@@ -203,7 +203,11 @@ Start Container
 │   └─ Setup MCP server configuration
 │
 ├─→ postStartCommand (every start)
-│   └─ Git safe directory configuration
+│   ├─ Git safe directory configuration
+│   ├─ lifecycle.sh open   (record session start; emit Hawkeye event)
+│   ├─ lifecycle.sh daemon (idle watchdog in background)
+│   ├─ snapshot.sh daemon  (initial snapshot + hourly schedule + daily GC)
+│   └─ hot-reload.sh daemon (watch CLAUDE.md/.mcp.json; reload agent config)
 │
 └─→ postAttachCommand (every attach)
     └─ Display environment info
@@ -245,6 +249,84 @@ opencode --help            # OpenCode CLI
 npx @modelcontextprotocol/inspector  # Debug MCP servers
 npx agent-browser                    # Browser automation
 ```
+
+## AI-Aware Container Lifecycle Scripts
+
+Three scripts in `devcontainer/scripts/` extend the container with AI-aware lifecycle management. They are started automatically via `postStartCommand` and can also be invoked manually.
+
+### `scripts/lifecycle.sh` — Container Lifecycle & Hawkeye Integration (Issue #5)
+
+Manages session open/close/idle detection and emits lifecycle events to a Hawkeye SSE endpoint.
+
+```bash
+# Commands
+lifecycle.sh open          # Record session start; emit session_open event
+lifecycle.sh close         # Snapshot workspace; emit session_close; stop daemon
+lifecycle.sh touch         # Update last-activity timestamp (add to shell rc)
+lifecycle.sh idle-check    # Exits 0 if idle, 1 if active
+lifecycle.sh daemon        # Run idle watchdog in background (auto-started)
+
+# Key environment variables
+HAWKEYE_URL=https://hawkeye.example.com   # Emit events here (optional)
+DAAX_IDLE_TIMEOUT=300                      # Idle threshold in seconds (default: 5 min)
+DAAX_STATE_DIR=/tmp/daax-lifecycle         # State directory
+```
+
+Hawkeye integration: if `HAWKEYE_URL` is set, the script POSTs JSON lifecycle events (`session_open`, `session_close`, `session_idle`, `session_active`) to `$HAWKEYE_URL/events`. Failures are non-fatal.
+
+Add `lifecycle.sh touch` to your `.zshrc` / `.bashrc` to keep the activity timestamp fresh during interactive sessions.
+
+---
+
+### `scripts/snapshot.sh` — Copy-on-Write Workspace Snapshots (Issue #6)
+
+Implements workspace snapshots with a 7-day GC cycle.
+
+```bash
+# Commands
+snapshot.sh snapshot [label]  # Create snapshot (label default: "auto")
+snapshot.sh restore  [label]  # Restore latest (or labelled) snapshot
+snapshot.sh list              # List all snapshots
+snapshot.sh gc                # Prune snapshots older than GC_DAYS (default: 7)
+snapshot.sh daemon            # Auto-snapshot on startup + hourly + daily GC
+
+# Key environment variables
+DAAX_SNAPSHOT_IMAGE=daax-workspace-snapshot  # Docker image prefix
+DAAX_SNAPSHOT_GC_DAYS=7                       # Retention window in days
+```
+
+**Implementation:** Uses `docker commit` when `/var/run/docker.sock` is available (full container image snapshot, <5s). Otherwise falls back to `tar` archives in `$DAAX_STATE_DIR/snapshots/` (excludes `.venv`, `node_modules`, build caches for speed).
+
+Performance targets: snapshot <5s, restore <10s.
+
+---
+
+### `scripts/hot-reload.sh` — Claude Code Hot-Reload (Issue #7)
+
+Watches `CLAUDE.md`, `.mcp.json`, `settings.json`, and tool allowlist files. On change, reloads the Claude Code agent configuration without restarting the container.
+
+```bash
+# Commands
+hot-reload.sh start    # Watch in foreground
+hot-reload.sh daemon   # Watch in background (auto-started)
+hot-reload.sh stop     # Stop background watcher
+hot-reload.sh status   # Check whether the watcher is running
+hot-reload.sh reload   # Manually trigger a reload now
+
+# Key environment variables
+CLAUDE_RELOAD_HOOK="my-custom-reload-cmd"    # Override default reload logic
+DAAX_HOT_RELOAD_FILES="path/a:path/b"        # Extra files to watch
+DAAX_HOT_RELOAD_POLL_INTERVAL=5              # Poll interval (seconds, fallback mode)
+```
+
+**Watch backends (auto-detected):**
+1. `inotifywait` — Linux, lowest latency (`apt-get install inotify-tools`)
+2. `fswatch` — macOS / Linux fallback
+3. Poll — portable fallback (5-second interval)
+
+**Reload strategy (in order):** custom `CLAUDE_RELOAD_HOOK` → SIGHUP to `claude` process → SIGTERM MCP server (supervisor restarts it) → write `pending-reload` flag for next session.
+
+---
 
 ## Troubleshooting
 

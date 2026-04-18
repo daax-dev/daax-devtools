@@ -124,7 +124,7 @@
   },
 
   "postCreateCommand": "bash .devcontainer/postCreate.sh",
-  "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+  "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && bash .devcontainer/scripts/lifecycle.sh open && bash .devcontainer/scripts/lifecycle.sh daemon & bash .devcontainer/scripts/snapshot.sh daemon & bash .devcontainer/scripts/hot-reload.sh daemon",
   "postAttachCommand": "echo '--- Daax Dev Environment Ready ---' && uv --version && python --version",
 
   "forwardPorts": [],
