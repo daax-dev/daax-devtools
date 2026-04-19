@@ -23,9 +23,9 @@
 # =============================================================================
 # VERSION TRACKING - Update these when upgrading tools
 # =============================================================================
-# Last updated: 2026-02-21
-# Flowspec: v0.4.004 (pinned)
-# Backlog.md: backlog.md (latest - needs ignore-scripts=false for postinstall)
+# Last updated: 2026-04-19
+# Flowspec: v0.4.008 (pinned)
+# Backlog.md: backlog.md@1.44.0
 # =============================================================================
 
 # Use the core image with AI CLIs
@@ -45,7 +45,7 @@ ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:${GOPATH}/bin:/usr/local/bin:${PA
 # SECURITY NOTE: Unpinned for MVP - backlog.md is a first-party tool under active development.
 # For production hardening, pin to specific version: pnpm install -g backlog.md@x.x.x
 # See Copilot review on PR #286 for tracking.
-RUN pnpm install -g backlog.md \
+RUN pnpm install -g backlog.md@1.44.0 \
     && echo "backlog.md installed successfully" \
     && backlog --version
 
@@ -57,10 +57,10 @@ RUN pnpm install -g backlog.md \
 # CRITICAL: Must succeed - this is an essential tool for this variant
 #
 # SECURITY: Pinned to immutable commit SHA to prevent supply chain attacks.
-# The mutable tag v0.4.004 corresponds to this commit. When upgrading, verify
+# The mutable tag v0.4.008 corresponds to this commit. When upgrading, verify
 # the new commit SHA against the release tag before updating here.
-ARG FLOWSPEC_VERSION=v0.4.004
-ARG FLOWSPEC_COMMIT_SHA=c36dbeb3ffc871100cd80b7f79c249c7ab2d43c0
+ARG FLOWSPEC_VERSION=v0.4.008
+ARG FLOWSPEC_COMMIT_SHA=51c7350e8f1a6bc345477dbd116bb3981ca5f808
 RUN /home/vscode/.local/bin/uv tool install git+https://github.com/jpoley/flowspec.git@${FLOWSPEC_COMMIT_SHA} \
     && echo "flowspec installed successfully (commit: ${FLOWSPEC_COMMIT_SHA}, tag: ${FLOWSPEC_VERSION})" \
     && flowspec --version

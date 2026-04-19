@@ -25,17 +25,18 @@
 # =============================================================================
 # VERSION TRACKING - Update these when upgrading AI CLI tools
 # =============================================================================
-# Last updated: 2026-02-21
-# Flowspec: v0.4.004 (pinned)
-# Backlog.md: backlog.md (latest - needs ignore-scripts=false for postinstall)
-# Claude Code: @anthropic-ai/claude-code (latest)
-# GitHub Copilot: @github/copilot (NEW - migrated from @githubnext/github-copilot-cli)
-# OpenAI Codex: @openai/codex (latest)
-# Google Gemini: @google/gemini-cli (latest)
-# Agent Browser: agent-browser (latest)
-# MCP Inspector: @modelcontextprotocol/inspector (latest) - for debugging MCP servers
-# Kiro CLI: kiro-cli (latest) - AWS AI coding agent (curl installer)
-# Get Shit Done: get-shit-done-cc (latest) - Meta-prompting system for Claude Code
+# Last updated: 2026-04-19
+# Flowspec: v0.4.008 (pinned)
+# Backlog.md: backlog.md@1.44.0
+# Claude Code: @anthropic-ai/claude-code@2.1.114
+# GitHub Copilot: @github/copilot@1.0.32
+# OpenAI Codex: @openai/codex@0.121.0
+# Google Gemini: @google/gemini-cli@0.38.2
+# OpenCode: opencode-ai@1.14.18
+# Agent Browser: agent-browser@0.26.0
+# MCP Inspector: @modelcontextprotocol/inspector@0.21.2
+# Kiro CLI: @anthropic-ai/kiro (not on npm - curl installer)
+# Get Shit Done: get-shit-done-cc@1.37.1
 # =============================================================================
 
 # Use the base image with all stable dependencies
@@ -103,14 +104,14 @@ RUN set -eu; \
 # See post-create.sh for runtime installation with package existence checks
 # IMPORTANT: Configure pnpm global-bin-dir to avoid "not in PATH" errors
 RUN pnpm config set global-bin-dir "${PNPM_HOME}" \
-    && pnpm install -g @anthropic-ai/claude-code || echo "Note: Claude Code CLI not installed (optional - may require auth)" \
-    && pnpm install -g @github/copilot || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" \
-    && pnpm install -g @openai/codex || echo "Note: OpenAI Codex CLI not installed (optional - requires ChatGPT subscription)" \
-    && pnpm install -g @google/gemini-cli || echo "Note: Gemini CLI not installed (optional - package may not be published yet)" \
-    && pnpm install -g opencode-ai || echo "Note: OpenCode CLI not installed (optional - package may not be published yet)" \
-    && pnpm install -g agent-browser || echo "Note: Agent Browser not installed (optional)" \
-    && pnpm install -g @modelcontextprotocol/inspector || echo "Note: MCP Inspector not installed (optional)" \
-    && pnpm install -g get-shit-done-cc@1.9.13 || echo "Note: Get Shit Done not installed (optional)" \
+    && pnpm install -g @anthropic-ai/claude-code@2.1.114 || echo "Note: Claude Code CLI not installed (optional - may require auth)" \
+    && pnpm install -g @github/copilot@1.0.32 || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" \
+    && pnpm install -g @openai/codex@0.121.0 || echo "Note: OpenAI Codex CLI not installed (optional - requires ChatGPT subscription)" \
+    && pnpm install -g @google/gemini-cli@0.38.2 || echo "Note: Gemini CLI not installed (optional - package may not be published yet)" \
+    && pnpm install -g opencode-ai@1.14.18 || echo "Note: OpenCode CLI not installed (optional - package may not be published yet)" \
+    && pnpm install -g agent-browser@0.26.0 || echo "Note: Agent Browser not installed (optional)" \
+    && pnpm install -g @modelcontextprotocol/inspector@0.21.2 || echo "Note: MCP Inspector not installed (optional)" \
+    && pnpm install -g get-shit-done-cc@1.37.1 || echo "Note: Get Shit Done not installed (optional)" \
     && pnpm approve-builds -g node-pty protobufjs tree-sitter-bash 2>/dev/null || echo "Note: pnpm approve-builds skipped (packages may not be installed)" \
     && pnpm rebuild -g 2>/dev/null || echo "Note: pnpm rebuild skipped (optional - some AI CLI packages may not be fully rebuilt)"
 
@@ -119,7 +120,7 @@ RUN pnpm config set global-bin-dir "${PNPM_HOME}" \
 # =============================================================================
 # Install task management and spec-driven development tools
 # Note: Base image is now Debian (glibc), so no gcompat/musl workarounds needed
-RUN pnpm install -g backlog.md \
+RUN pnpm install -g backlog.md@1.44.0 \
     && echo "backlog.md installed successfully" \
     && backlog --version
 USER vscode
@@ -137,7 +138,7 @@ RUN cd "${PNPM_HOME}" && pnpm update semver --latest 2>/dev/null || echo "pnpm s
 # Install flowspec CLI from GitHub
 # Note: 'flowspec' is a SEPARATE project (jpoley/flowspec) providing specification-driven development CLI.
 # CRITICAL: Must succeed - this is an essential tool
-RUN /home/vscode/.local/bin/uv tool install git+https://github.com/jpoley/flowspec.git@v0.4.004 \
+RUN /home/vscode/.local/bin/uv tool install git+https://github.com/jpoley/flowspec.git@v0.4.008 \
     && echo "flowspec installed successfully" \
     && flowspec --version
 

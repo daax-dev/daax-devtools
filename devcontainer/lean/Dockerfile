@@ -23,14 +23,14 @@ RUN apk add --no-cache \
     fzf
 
 # Upgrade npm and install pnpm
-RUN npm install -g npm@latest \
+RUN npm install -g npm@10.9.8 \
     && npm cache clean --force \
     && npm install -g pnpm
 
 # Install GitHub CLI
-ARG GH_VERSION=2.87.2
-ARG GH_SHA256_AMD64=18360b2243e3bf9c1457035db45f6400ae4cf957dcc2f674e69717b4e0b14d55
-ARG GH_SHA256_ARM64=e37efdd8ec98425f44175040b5037c767bbd49f192aed1de5aabc4b4ea9e22c5
+ARG GH_VERSION=2.90.0
+ARG GH_SHA256_AMD64=b2aef7b23ec6899bf27f37a32c57a7935d0a178568ac33dc9bb03842f724195a
+ARG GH_SHA256_ARM64=1139e1ad912fcddb5ef4b957530184c2c30d9937ff65ff4e641fbf6ca5f28c7c
 ARG TARGETARCH
 RUN case "${TARGETARCH}" in \
         "amd64") GH_ARCH="linux_amd64"; GH_SHA256="${GH_SHA256_AMD64}" ;; \
@@ -58,13 +58,13 @@ ENV PNPM_HOME="/home/vscode/.local/share/pnpm"
 ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:/usr/local/bin:${PATH}"
 
 # Install uv (Python package manager) with SHA256 checksum verification
-# Checksums for musl libc tarballs from uv 0.10.4 release assets:
+# Checksums for musl libc tarballs from uv 0.11.7 release assets:
 #   - linux/amd64: uv-x86_64-unknown-linux-musl.tar.gz
 #   - linux/arm64: uv-aarch64-unknown-linux-musl.tar.gz
-# See: https://github.com/astral-sh/uv/releases/download/0.10.4/
-ARG UV_VERSION=0.10.4
-ARG UV_SHA256_AMD64=18adf097cea30a165ba086c1e72659fec3c5aca056a560e7c39e0164ac871196
-ARG UV_SHA256_ARM64=82fc461031dafb130af761e7dbec1bcc51b826c2e664f5bf8bc4e4f8330320cd
+# See: https://github.com/astral-sh/uv/releases/download/0.11.7/
+ARG UV_VERSION=0.11.7
+ARG UV_SHA256_AMD64=64ddb5f1087649e3f75aa50d139aa4f36ddde728a5295a141e0fa9697bfb7b0f
+ARG UV_SHA256_ARM64=46647dc16cbb7d6700f762fdd7a67d220abe18570914732bc310adc91308d272
 RUN mkdir -p /home/vscode/.local/bin \
     && case "${TARGETARCH}" in \
         "amd64") UV_ARCH="x86_64-unknown-linux-musl"; UV_SHA256="${UV_SHA256_AMD64}" ;; \
@@ -86,7 +86,7 @@ RUN pnpm install -g @anthropic-ai/claude-code || echo "Claude Code install defer
 RUN pnpm install -g backlog.md || echo "backlog.md install skipped"
 
 # Install flowspec
-RUN /home/vscode/.local/bin/uv tool install git+https://github.com/jpoley/flowspec.git@v0.4.004 || echo "flowspec install skipped"
+RUN /home/vscode/.local/bin/uv tool install git+https://github.com/jpoley/flowspec.git@v0.4.008 || echo "flowspec install skipped"
 
 # Python tools
 RUN /home/vscode/.local/bin/uv tool install ruff \

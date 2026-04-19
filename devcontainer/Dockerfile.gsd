@@ -22,8 +22,8 @@
 # =============================================================================
 # VERSION TRACKING - Update these when upgrading tools
 # =============================================================================
-# Last updated: 2026-02-21
-# get-shit-done-cc: latest (from npm)
+# Last updated: 2026-04-19
+# get-shit-done-cc: 1.37.1
 # =============================================================================
 
 # Use the core image with AI CLIs
@@ -43,7 +43,7 @@ ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:${GOPATH}/bin:/usr/local/bin:${PA
 # SECURITY NOTE: Unpinned for MVP. For production hardening, pin to specific version.
 # The install MUST succeed - fail build on error rather than silently continuing.
 # See Copilot review on PR #286 for tracking.
-RUN pnpm install -g get-shit-done-cc \
+RUN pnpm install -g get-shit-done-cc@1.37.1 \
     && echo "get-shit-done-cc installed successfully" \
     && (gsd --version || echo "Note: gsd installed but may not have --version flag")
 

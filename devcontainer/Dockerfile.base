@@ -61,8 +61,8 @@ ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 ENV LANGUAGE=en_US.UTF-8
 
-# Upgrade npm to latest version to fix vulnerabilities in npm's internal dependencies
-RUN npm install -g npm@latest \
+# Upgrade npm to v10 LTS (npm@11 has broken promise-retry bundling in node:22-bookworm-slim)
+RUN npm install -g npm@10.9.8 \
     && npm cache clean --force
 
 # Install pnpm globally (after npm upgrade to use patched npm)
@@ -70,10 +70,10 @@ RUN npm install -g pnpm
 
 # Install GitHub CLI from official releases with checksum verification
 # SECURITY: Alpine's github-cli package has outdated dependencies
-# Version: 2.87.2 (2026-02-20) - Latest stable
-ARG GH_VERSION=2.87.2
-ARG GH_SHA256_AMD64=18360b2243e3bf9c1457035db45f6400ae4cf957dcc2f674e69717b4e0b14d55
-ARG GH_SHA256_ARM64=e37efdd8ec98425f44175040b5037c767bbd49f192aed1de5aabc4b4ea9e22c5
+# Version: 2.90.0 (2026-04-19) - Latest stable
+ARG GH_VERSION=2.90.0
+ARG GH_SHA256_AMD64=b2aef7b23ec6899bf27f37a32c57a7935d0a178568ac33dc9bb03842f724195a
+ARG GH_SHA256_ARM64=1139e1ad912fcddb5ef4b957530184c2c30d9937ff65ff4e641fbf6ca5f28c7c
 ARG TARGETARCH
 RUN case "${TARGETARCH}" in \
         "amd64") GH_ARCH="linux_amd64"; GH_SHA256="${GH_SHA256_AMD64}" ;; \
@@ -106,14 +106,14 @@ ENV PNPM_HOME="/home/vscode/.local/share/pnpm"
 ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:/usr/local/bin:${PATH}"
 
 # Install uv (Python package manager) with SHA256 checksum verification
-# Version: 0.10.4 (2026-02-21) - Latest stable
-# Checksums for GNU libc tarballs from uv 0.10.4 release assets:
+# Version: 0.11.7 (2026-04-19) - Latest stable
+# Checksums for GNU libc tarballs from uv 0.11.7 release assets:
 #   - linux/amd64: uv-x86_64-unknown-linux-gnu.tar.gz
 #   - linux/arm64: uv-aarch64-unknown-linux-gnu.tar.gz
-# See: https://github.com/astral-sh/uv/releases/download/0.10.4/
-ARG UV_VERSION=0.10.4
-ARG UV_SHA256_AMD64=6b52a47358deea1c5e173278bf46b2b489747a59ae31f2a4362ed5c6c1c269f7
-ARG UV_SHA256_ARM64=c84a6e6405715caa6e2f5ef8e5f29a5d0bc558a954e9f1b5c082b9d4708c222e
+# See: https://github.com/astral-sh/uv/releases/download/0.11.7/
+ARG UV_VERSION=0.11.7
+ARG UV_SHA256_AMD64=6681d691eb7f9c00ac6a3af54252f7ab29ae72f0c8f95bdc7f9d1401c23ea868
+ARG UV_SHA256_ARM64=f2ee1cde9aabb4c6e43bd3f341dadaf42189a54e001e521346dc31547310e284
 ARG TARGETARCH
 RUN mkdir -p /home/vscode/.local/bin \
     && case "${TARGETARCH}" in \
@@ -130,10 +130,10 @@ RUN mkdir -p /home/vscode/.local/bin \
     && /home/vscode/.local/bin/uv --version
 
 # Install oh-my-posh with pinned version and SHA256 checksum verification
-# Version: 29.5.0 (2026-02-21) - Latest stable
-ARG OMP_VERSION=29.5.0
-ARG OMP_SHA256_AMD64=8265f10034027271681bc0dbd2242ca554a863995db2c4da885e9926bcc6ec69
-ARG OMP_SHA256_ARM64=d1caf6b7e11523b01017dee5e9c59a1e8d94c39bd91e2be423458104367f62b5
+# Version: 29.10.0 (2026-04-19) - Latest stable
+ARG OMP_VERSION=29.10.0
+ARG OMP_SHA256_AMD64=db2bb4e35384aff2014c79eec8e81c407656952f7c74d7df84f8b2658286dd14
+ARG OMP_SHA256_ARM64=f33ca7dd60ac39cd113764073b2d9e04528a071d7bb693abad1499427d252641
 RUN case "${TARGETARCH}" in \
         "amd64") OMP_ARCH="amd64"; OMP_SHA256="${OMP_SHA256_AMD64}" ;; \
         "arm64") OMP_ARCH="arm64"; OMP_SHA256="${OMP_SHA256_ARM64}" ;; \
