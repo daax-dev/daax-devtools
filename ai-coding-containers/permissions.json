@@ -1,0 +1,76 @@
+{
+  "_comment": "Default tool allowlist for sandboxed AI coding sessions (Issue #21).",
+  "_schema_version": "1.0",
+  "_doc": "Session creators may only narrow this list, never expand it. hawkeye enforces the allowlist at runtime.",
+
+  "allowlist": {
+    "filesystem": {
+      "read":   true,
+      "write":  true,
+      "delete": false,
+      "paths": {
+        "allowed": ["/workspace"],
+        "denied":  ["/etc", "/var", "/run", "/proc", "/sys", "/root", "/home"]
+      }
+    },
+    "network": {
+      "outbound": false,
+      "inbound":  false,
+      "allowed_hosts": []
+    },
+    "processes": {
+      "exec":       true,
+      "allowed_commands": [
+        "bash", "sh", "zsh",
+        "python", "python3", "uv", "pip",
+        "node", "npm", "pnpm", "npx",
+        "git",
+        "grep", "sed", "awk", "jq",
+        "cat", "ls", "find", "echo", "printf",
+        "curl",
+        "ruff", "pytest",
+        "backlog", "flowspec"
+      ],
+      "denied_commands": [
+        "sudo", "su",
+        "docker", "podman",
+        "ssh", "scp", "sftp", "nc", "netcat",
+        "wget",
+        "mount", "umount",
+        "iptables", "ip",
+        "chmod", "chown",
+        "crontab"
+      ]
+    },
+    "environment": {
+      "read":  true,
+      "write": true,
+      "denied_vars": [
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+        "GITHUB_TOKEN",
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+        "GOOGLE_API_KEY"
+      ]
+    },
+    "tools": {
+      "Read":   true,
+      "Write":  true,
+      "Edit":   true,
+      "Bash":   true,
+      "Glob":   true,
+      "Grep":   true,
+      "WebFetch":   false,
+      "WebSearch":  false,
+      "mcp_servers": []
+    }
+  },
+
+  "enforcement": {
+    "mode":                 "enforce",
+    "on_violation":         "block_and_log",
+    "log_destination":      "hawkeye",
+    "require_explicit_deny": false
+  }
+}

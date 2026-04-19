@@ -1,0 +1,87 @@
+{
+  "_comment": "Reproducible tool lockfile for AI coding containers (Issue #22).",
+  "_schema_version": "1.0",
+  "_doc": "Pinned versions + SHA-256 checksums for every tool installed in the AI coding container. bootstrap.sh reads this file and fails if any tool version or checksum drifts.",
+  "generated_at": "2026-04-17T00:00:00Z",
+
+  "node_packages": {
+    "@anthropic-ai/claude-code": {
+      "version": "1.9.3",
+      "registry": "https://registry.npmjs.org",
+      "integrity": "sha512-placeholder-claude-code-integrity-hash-replace-with-real-value-from-npm=="
+    },
+    "@github/copilot": {
+      "version": "1.0.32",
+      "registry": "https://registry.npmjs.org",
+      "integrity": "sha512-placeholder-copilot-integrity-hash-replace-with-real-value-from-npm=="
+    },
+    "@openai/codex": {
+      "version": "0.1.2504251",
+      "registry": "https://registry.npmjs.org",
+      "integrity": "sha512-placeholder-codex-integrity-hash-replace-with-real-value-from-npm=="
+    },
+    "@google/gemini-cli": {
+      "version": "0.1.10",
+      "registry": "https://registry.npmjs.org",
+      "integrity": "sha512-placeholder-gemini-integrity-hash-replace-with-real-value-from-npm=="
+    },
+    "backlog.md": {
+      "version": "1.12.2",
+      "registry": "https://registry.npmjs.org",
+      "integrity": "sha512-placeholder-backlog-integrity-hash-replace-with-real-value-from-npm=="
+    },
+    "get-shit-done-cc": {
+      "version": "1.9.13",
+      "registry": "https://registry.npmjs.org",
+      "integrity": "sha512-placeholder-gsd-integrity-hash-replace-with-real-value-from-npm=="
+    },
+    "@modelcontextprotocol/inspector": {
+      "version": "0.14.3",
+      "registry": "https://registry.npmjs.org",
+      "integrity": "sha512-placeholder-mcp-inspector-integrity-hash-replace-with-real-value-from-npm=="
+    }
+  },
+
+  "python_packages": {
+    "flowspec": {
+      "source": "git+https://github.com/jpoley/flowspec.git",
+      "ref": "v0.4.004",
+      "commit_sha": "placeholder-flowspec-commit-sha-replace-with-real-value",
+      "integrity": "sha256:placeholder-flowspec-wheel-integrity-replace-with-real-value"
+    },
+    "ruff": {
+      "version": "0.11.6",
+      "registry": "https://pypi.org",
+      "integrity": "sha256:placeholder-ruff-wheel-integrity-replace-with-real-value"
+    },
+    "pytest": {
+      "version": "8.3.5",
+      "registry": "https://pypi.org",
+      "integrity": "sha256:placeholder-pytest-wheel-integrity-replace-with-real-value"
+    }
+  },
+
+  "system_binaries": {
+    "docker": {
+      "min_version": "26.0.0",
+      "check_command": "docker --version",
+      "version_regex": "Docker version ([0-9]+\\.[0-9]+\\.[0-9]+)"
+    },
+    "jq": {
+      "min_version": "1.6",
+      "check_command": "jq --version",
+      "version_regex": "jq-([0-9]+\\.[0-9]+)"
+    },
+    "git": {
+      "min_version": "2.40.0",
+      "check_command": "git --version",
+      "version_regex": "git version ([0-9]+\\.[0-9]+\\.[0-9]+)"
+    }
+  },
+
+  "base_image": {
+    "name": "jpoley/daax-agents",
+    "tag": "latest",
+    "digest": "sha256:placeholder-docker-image-digest-replace-with-real-value-from-docker-inspect"
+  }
+}
