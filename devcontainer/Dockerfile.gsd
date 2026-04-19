@@ -40,7 +40,7 @@ ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:${GOPATH}/bin:/usr/local/bin:${PA
 # =============================================================================
 # Install get-shit-done-cc for task execution with Claude Code
 # This is an opinionated task execution framework that works with Claude Code
-# SECURITY NOTE: Unpinned for MVP. For production hardening, pin to specific version.
+# SECURITY NOTE: Pinned to a specific version for reproducibility and a clearer security posture.
 # The install MUST succeed - fail build on error rather than silently continuing.
 # See Copilot review on PR #286 for tracking.
 RUN pnpm install -g get-shit-done-cc@1.37.1 \
