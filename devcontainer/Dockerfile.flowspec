@@ -42,9 +42,8 @@ ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:${GOPATH}/bin:/usr/local/bin:${PA
 # =============================================================================
 # Install backlog.md for task management
 # Note: Base image is now Debian (glibc), so no gcompat/musl workarounds needed
-# SECURITY NOTE: Unpinned for MVP - backlog.md is a first-party tool under active development.
-# For production hardening, pin to specific version: pnpm install -g backlog.md@x.x.x
-# See Copilot review on PR #286 for tracking.
+# SECURITY NOTE: Pinned to backlog.md@1.44.0 for reproducible builds.
+# When upgrading, update both the version tracking comment above and this install command.
 RUN pnpm install -g backlog.md@1.44.0 \
     && echo "backlog.md installed successfully" \
     && backlog --version
