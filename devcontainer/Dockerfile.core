@@ -67,16 +67,25 @@ COPY --chown=vscode:vscode daax.omp.json /home/vscode/.config/daax.omp.json
 # Intentionally NOT version-pinned — pass a fresh value each build, e.g.
 # `docker build --build-arg CLI_REFRESH=$(date +%s) ...` (or `--no-cache`).
 ARG CLI_REFRESH=0
+# NOTE on shell structure: each optional install is wrapped in its OWN
+# subshell `( pnpm install -g X || echo "Note: ..." )` so the `||` fallback
+# binds ONLY to that install. Without the subshell, `A && B || C && D` lets a
+# failure in an earlier `&&` segment (e.g. `pnpm config set`) fall through to
+# the next `|| echo` and then keep going, masking the real error. The four
+# REQUIRED CLIs (claude, codex, gemini, opencode) deliberately have NO
+# `|| echo` fallback: they must fail the build immediately, consistent with
+# the hard verification gate below — shipping them broken is the exact bug
+# this change fixes, so "optional" framing for them would be misleading.
 RUN echo "CLI refresh token: ${CLI_REFRESH}" \
     && pnpm config set global-bin-dir "${PNPM_HOME}" \
-    && pnpm install -g @anthropic-ai/claude-code || echo "Note: Claude Code CLI not installed (optional - may require auth)" \
-    && pnpm install -g @github/copilot || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" \
-    && pnpm install -g @openai/codex || echo "Note: OpenAI Codex CLI not installed (optional - requires ChatGPT subscription)" \
-    && pnpm install -g @google/gemini-cli || echo "Note: Gemini CLI not installed (optional - package may not be published yet)" \
-    && pnpm install -g opencode-ai || echo "Note: OpenCode CLI not installed (optional - package may not be published yet)" \
-    && pnpm install -g @anthropic-ai/kiro || echo "Note: Kiro CLI not installed (optional - may require auth)" \
-    && pnpm install -g agent-browser || echo "Note: Agent Browser not installed (optional)" \
-    && pnpm install -g @modelcontextprotocol/inspector || echo "Note: MCP Inspector not installed (optional)" \
+    && pnpm install -g @anthropic-ai/claude-code \
+    && ( pnpm install -g @github/copilot || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" ) \
+    && pnpm install -g @openai/codex \
+    && pnpm install -g @google/gemini-cli \
+    && pnpm install -g opencode-ai \
+    && ( pnpm install -g @anthropic-ai/kiro || echo "Note: Kiro CLI not installed (optional - may require auth)" ) \
+    && ( pnpm install -g agent-browser || echo "Note: Agent Browser not installed (optional)" ) \
+    && ( pnpm install -g @modelcontextprotocol/inspector || echo "Note: MCP Inspector not installed (optional)" ) \
     # pnpm v10 blocks dependency build scripts and skips the platform-native
     # optionalDependencies for these CLIs, leaving `claude`/`opencode` as
     # non-functional shims ("native binary not installed"). Run their
@@ -153,9 +162,13 @@ RUN echo "=== Core Layer Installation Verification ===" \
     # kiro: not published to the npm registry).
     && echo "--- Verifying required CLIs are functional ---" \
     && for c in claude codex gemini opencode; do \
-         timeout 10 "$c" --version >/dev/null 2>&1 \
-           && echo "OK: $c" \
-           || { echo "FATAL: $c is installed but not functional" >&2; exit 1; }; \
+         if ! command -v "$c" >/dev/null 2>&1; then \
+           echo "FATAL: $c is not installed (command not found)" >&2; exit 1; \
+         elif err="$(timeout 10 "$c" --version 2>&1 >/dev/null)"; then \
+           echo "OK: $c"; \
+         else \
+           echo "FATAL: $c is installed but not functional: ${err:-(no stderr; non-zero exit or timeout)}" >&2; exit 1; \
+         fi; \
        done
 
 # Default command
