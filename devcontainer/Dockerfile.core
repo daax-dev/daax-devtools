@@ -60,7 +60,15 @@ COPY --chown=vscode:vscode daax.omp.json /home/vscode/.config/daax.omp.json
 # - Verify checksums with npm audit or similar tooling
 # See Copilot review comments on PRs #282, #285, #286 for tracking.
 # IMPORTANT: Configure pnpm global-bin-dir to avoid "not in PATH" errors
-RUN pnpm config set global-bin-dir "${PNPM_HOME}" \
+#
+# CLI_REFRESH busts the Docker layer cache for the AI-CLI install below so a
+# rebuild actually re-fetches the CURRENT latest @anthropic-ai/claude-code
+# (and the other CLIs) instead of reusing a months-old cached layer.
+# Intentionally NOT version-pinned — pass a fresh value each build, e.g.
+# `docker build --build-arg CLI_REFRESH=$(date +%s) ...` (or `--no-cache`).
+ARG CLI_REFRESH=0
+RUN echo "CLI refresh token: ${CLI_REFRESH}" \
+    && pnpm config set global-bin-dir "${PNPM_HOME}" \
     && pnpm install -g @anthropic-ai/claude-code || echo "Note: Claude Code CLI not installed (optional - may require auth)" \
     && pnpm install -g @github/copilot || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" \
     && pnpm install -g @openai/codex || echo "Note: OpenAI Codex CLI not installed (optional - requires ChatGPT subscription)" \
@@ -69,8 +77,21 @@ RUN pnpm config set global-bin-dir "${PNPM_HOME}" \
     && pnpm install -g @anthropic-ai/kiro || echo "Note: Kiro CLI not installed (optional - may require auth)" \
     && pnpm install -g agent-browser || echo "Note: Agent Browser not installed (optional)" \
     && pnpm install -g @modelcontextprotocol/inspector || echo "Note: MCP Inspector not installed (optional)" \
-    && pnpm approve-builds -g node-pty protobufjs tree-sitter-bash 2>/dev/null || echo "Note: pnpm approve-builds skipped (packages may not be installed)" \
-    && pnpm rebuild -g 2>/dev/null || echo "Note: pnpm rebuild skipped (optional - some AI CLI packages may not be fully rebuilt)"
+    # pnpm v10 blocks dependency build scripts and skips the platform-native
+    # optionalDependencies for these CLIs, leaving `claude`/`opencode` as
+    # non-functional shims ("native binary not installed"). Run their
+    # postinstalls explicitly — the exact remedy each CLI's own error message
+    # prescribes. Path via `pnpm root -g` so it survives pnpm store-dir bumps
+    # (global/5 -> global/6). The old interactive `pnpm approve-builds` here
+    # silently no-opped in non-TTY builds, which is why the image shipped a
+    # broken `claude` for months.
+    # NOTE: @github/copilot is deliberately NOT repaired here — its native
+    # binary is glibc and its JS fallback requires Node >=24, but this base
+    # image is musl + Node 22. Copilot needs a base-image change (tracked
+    # separately); do not bodge it in this layer.
+    && PG="$(pnpm root -g)" \
+    && node "$PG/@anthropic-ai/claude-code/install.cjs" \
+    && ( cd "$PG/opencode-ai" && node postinstall.mjs )
 
 # Fix pnpm package vulnerabilities by forcing semver upgrade
 # - CVE-2022-25883: semver@<7.5.2 -> >=7.5.2 (ReDoS vulnerability; fixed in semver 7.5.2)
@@ -125,7 +146,17 @@ RUN echo "=== Core Layer Installation Verification ===" \
     && echo "kiro: $(timeout 5 kiro --version 2>&1 || echo 'not installed')" \
     && echo "agent-browser: $(which agent-browser >/dev/null 2>&1 && echo 'installed' || echo 'not installed')" \
     && echo "mcp-inspector: $(which mcp-inspector >/dev/null 2>&1 && echo 'installed' || echo 'not installed')" \
-    && echo "PATH: $PATH"
+    && echo "PATH: $PATH" \
+    # Hard gate: fail the build if a must-work CLI is broken, so a
+    # non-functional image can never ship silently again. copilot and kiro
+    # are intentionally excluded (copilot: musl/Node-24 base-image limitation;
+    # kiro: not published to the npm registry).
+    && echo "--- Verifying required CLIs are functional ---" \
+    && for c in claude codex gemini opencode; do \
+         timeout 10 "$c" --version >/dev/null 2>&1 \
+           && echo "OK: $c" \
+           || { echo "FATAL: $c is installed but not functional" >&2; exit 1; }; \
+       done
 
 # Default command
 CMD ["zsh"]
