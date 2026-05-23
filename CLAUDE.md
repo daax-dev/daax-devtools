@@ -48,7 +48,7 @@ Read the matching file **before** you:
 ## Repository Map
 | Path | Purpose |
 |------|---------|
-| `devcontainer/Dockerfile.base` | Foundation layer (`jpoley/daax-agents-base`): Python 3, Node 22, Go, dev tools, oh-my-posh. Rebuild ~monthly. |
+| `devcontainer/Dockerfile.base` | Foundation layer (`jpoley/daax-agents-base`): Python 3, Node 22, dev tools, oh-my-posh. Rebuild ~monthly. (Go is not here — only in `Dockerfile.code-server`.) |
 | `devcontainer/Dockerfile` | Tools layer (`jpoley/daax-agents`): AI CLIs (Claude, Copilot, Codex, Gemini) on top of base. Rebuild ~weekly. |
 | `devcontainer/Dockerfile.{core,flowspec,gsd,openspec,code-server}` | Specialized image variants. |
 | `devcontainer/build-push-docker.sh` | 2-phase multi-arch build+push to Docker Hub (base + tools). |

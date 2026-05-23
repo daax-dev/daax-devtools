@@ -8,7 +8,7 @@ This is a container-image / devcontainer tooling repo, not a running service. Se
 ---
 
 ## Image Layering (the core pattern)
-- **2-phase build:** a stable BASE layer (`daax-agents-base`: Python, Node, Go, dev tools, oh-my-posh — changes ~monthly) and a frequently-changing TOOLS layer (`daax-agents`: AI CLIs — changes ~weekly) built on top of it.
+- **2-phase build:** a stable BASE layer (`daax-agents-base`: Python, Node, dev tools, oh-my-posh — changes ~monthly) and a frequently-changing TOOLS layer (`daax-agents`: AI CLIs — changes ~weekly) built on top of it. (Go is not in these images; it ships only in the `code-server` variant.)
 - Rationale: AI CLIs update weekly; system deps rarely. Splitting layers keeps the cached base reusable and tools rebuilds fast. Do not collapse the layers without a logged decision.
 - Specialized variants (`core`, `flowspec`, `gsd`, `openspec`, `code-server`) and the `lean`/`starter-app` devcontainers branch from this hierarchy. Keep them consistent with the base where they share tooling.
 

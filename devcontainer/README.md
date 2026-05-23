@@ -609,8 +609,7 @@ docker pull jpoley/daax-agents:latest
 docker inspect jpoley/daax-agents:latest | jq '.[0].Created'
 ```
 
-Check GitHub Actions for build history:
-- https://github.com/jpoley/daax/actions/workflows/docker-publish.yml
+Builds and pushes are run manually (no CI). Use `push.sh` or `devcontainer/build-push-docker.sh`.
 
 ## References
 

@@ -29,11 +29,11 @@ Purpose: Container/devcontainer tooling for the Daax platform — Dockerfiles, d
 
 ## Stack
 - This is an infrastructure/tooling repo. The repo's own source is **shell scripts + Dockerfiles + JSON config** — no application code, no build at the repo root.
-- Container images built here run: Python 3 (Debian bookworm-slim), Node.js 22, Go (binaries copied from a builder stage). Those runtimes live *inside the images*, not in this repo.
-- Image base: `node:22-bookworm-slim`. Pinned build args: `GH_VERSION=2.90.0`, `UV_VERSION=0.11.7`, `OMP_VERSION=29.10.0`.
+- Container images built here run: Python 3 (Debian bookworm-slim), Node.js 22. Those runtimes live *inside the images*, not in this repo. Go is **not** in the base/tools images — it ships only in `Dockerfile.code-server` (downloaded from go.dev to `/usr/local/go`); base/tools Dockerfiles only set `GOPATH`/`PATH`.
+- Image base: `node:22-bookworm-slim`. Pinned build args (`Dockerfile.base`): `GH_VERSION=2.87.2`, `UV_VERSION=0.10.4`, `OMP_VERSION=29.5.0`. Trust the Dockerfiles when these drift.
 - Package manager: `package.json` scripts are invoked with `bun` (`bun run agents:release`). uv + pnpm are installed inside images, not used at repo root.
-- Registry: **Docker Hub** (`docker.io/jpoley/daax-agents`, `jpoley/daax-agents-base`). NOTE: README.md says "GitHub Container Registry" but the scripts (`push.sh`, `build-push-docker.sh`, `package.json`) all target Docker Hub — trust the scripts.
-- CI: none. (`Dockerfile.base` header references `.github/workflows/docker-publish.yml`, but no workflow file exists in the repo.)
+- Registry: **Docker Hub** (`docker.io/jpoley/daax-agents`, `jpoley/daax-agents-base`). The scripts (`push.sh`, `build-push-docker.sh`, `package.json`) all target Docker Hub.
+- CI: none. No `.github/workflows/` directory exists; builds/pushes run manually via `push.sh` / `build-push-docker.sh`.
 
 ---
 
@@ -62,6 +62,6 @@ A task is done only when:
 - Changed shell scripts pass `shellcheck` (or `bash -n` if shellcheck is unavailable, noted explicitly).
 - Changed Dockerfiles build successfully with `docker build`.
 - PR opened with problem statement, approach, and validation evidence.
-- No `[FILL IN]` placeholders left in affected files.
+- No unresolved `[FILL IN]` placeholders in affected files. Explicitly-marked unknowns (documented gaps awaiting operator input, e.g. in `.claude/sourcecontrol.md`) are allowed and must state what is unknown and why.
 - Decisions logged in `.logs/decisions/` if a non-trivial choice was made.
 - Backlog.md task updated to Done with a link to the PR/commit.

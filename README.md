@@ -16,7 +16,7 @@ Container, deployment, and infrastructure tooling for Daax.
 # Rebuild the container locally
 ./rebuild.sh
 
-# Build and push to GitHub Container Registry
+# Build and push to Docker Hub (jpoley/daax-agents)
 ./push.sh
 
 # Restart the container
@@ -40,7 +40,7 @@ Set these in your shell or `.env` file:
 | Script | Purpose |
 |--------|---------|
 | `rebuild.sh` | Rebuild and restart the container |
-| `push.sh` | Build and push to GitHub Container Registry |
+| `push.sh` | Build and push `jpoley/daax-agents` to Docker Hub |
 | `restart.sh` | Restart the container |
 | `scripts/contain-claude.sh` | Helper for running Claude in container |
 

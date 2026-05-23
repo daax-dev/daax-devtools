@@ -15,9 +15,9 @@ This is an infrastructure / container-tooling repo. The repo's own source is she
 ## Image Runtimes (inside the built images)
 - Base image: `node:22-bookworm-slim` (Debian bookworm-slim).
 - Node.js 22 + pnpm.
-- Python 3 (system `python3` + `uv`, `UV_VERSION=0.11.7`).
-- Go (binaries copied from a builder stage — no `go.mod` in this repo).
-- GitHub CLI `GH_VERSION=2.90.0`; oh-my-posh `OMP_VERSION=29.10.0`.
+- Python 3 (system `python3` + `uv`, `UV_VERSION=0.10.4`).
+- GitHub CLI `GH_VERSION=2.87.2`; oh-my-posh `OMP_VERSION=29.5.0`.
+- Go is **not** in the base/tools images. It is installed only in `Dockerfile.code-server` (downloaded from go.dev to `/usr/local/go`). The base/tools Dockerfiles set `GOPATH`/`PATH` env vars but do not install a Go toolchain.
 - AI CLIs (tools layer, pinned in `Dockerfile` VERSION TRACKING block): Claude Code, GitHub Copilot, OpenAI Codex, Google Gemini, OpenCode, Backlog.md, Flowspec, GSD, Kiro, MCP Inspector. Versions are pinned in the Dockerfile header — keep them in sync when bumping.
 
 ## Image Variants
@@ -29,10 +29,9 @@ This is an infrastructure / container-tooling repo. The repo's own source is she
 
 ## Build / Package / Registry
 - Build: Docker Buildx via `devcontainer/build-push-docker.sh` (2-phase: base then tools) and `build-all.sh`. Local single-image build via `rebuild.sh`.
-- Artifact registry: **Docker Hub** (`docker.io/jpoley/daax-agents`, `jpoley/daax-agents-base`). Build cache pushed to `:buildcache` tags.
-  - Known discrepancy: `README.md` calls it "GitHub Container Registry," but all scripts target Docker Hub. The scripts are authoritative. Out of scope to fix here.
+- Artifact registry: **Docker Hub** (`docker.io/jpoley/daax-agents`, `jpoley/daax-agents-base`). Build cache pushed to `:buildcache` tags. (Image names are kept as `jpoley/*` for now; a daax-dev image-namespace move is a separate decision.)
   - `build-push-docker.sh` also expects a `dhi.io` (Docker Hardened Image) login using the same Docker Hub credentials.
-- CI: **none.** `Dockerfile.base` header references `.github/workflows/docker-publish.yml` as a future/aspirational automation target, but no workflow file exists in the repo. Builds/pushes are run manually.
+- CI: **none.** No `.github/workflows/` directory exists. Builds/pushes are run manually via `push.sh` / `build-push-docker.sh`.
 
 ## Persistence / Messaging / Auth
 - None applicable — this repo ships no service.

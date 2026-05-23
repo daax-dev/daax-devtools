@@ -47,7 +47,7 @@ Read the matching file **before** you:
 ---
 
 ## Repository Map
-- `devcontainer/Dockerfile.base` — base layer (`jpoley/daax-agents-base`): Python 3, Node 22, Go, dev tools.
+- `devcontainer/Dockerfile.base` — base layer (`jpoley/daax-agents-base`): Python 3, Node 22, dev tools. (Go is not in base/tools images — only in `Dockerfile.code-server`.)
 - `devcontainer/Dockerfile` — tools layer (`jpoley/daax-agents`): AI CLIs on top of base.
 - `devcontainer/Dockerfile.{core,flowspec,gsd,openspec,code-server}` — specialized variants.
 - `devcontainer/build-push-docker.sh` — 2-phase multi-arch build+push to Docker Hub.

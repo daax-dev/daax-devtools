@@ -20,7 +20,7 @@
 # Automatic Rebuild Strategy:
 #   - Base image: Rebuild monthly or when system deps change
 #   - Tools image: Rebuild weekly or when AI CLIs release updates
-#   - See .github/workflows/docker-publish.yml for automation
+#   - Builds/pushes are run manually via push.sh / build-push-docker.sh (no CI)
 #
 # =============================================================================
 # VERSION TRACKING - Update these when upgrading AI CLI tools
