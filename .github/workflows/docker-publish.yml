@@ -1,0 +1,140 @@
+name: Publish devcontainer images
+
+# Builds and pushes the jpoley/* devcontainer images to Docker Hub whenever the
+# Dockerfiles change on main. Each image is scanned for CRITICAL CVEs before it
+# is published (the build fails and nothing is pushed if a critical appears).
+#
+# Required repository secrets:
+#   DOCKERHUB_USERNAME  - Docker Hub user with push access to jpoley/*
+#   DOCKERHUB_TOKEN     - Docker Hub access token (read/write)
+#   DHI_USERNAME        - dhi.io user (only the lean image's base lives there)
+#   DHI_TOKEN           - dhi.io access token
+#
+# Build order mirrors the FROM chain:
+#   base -> core -> {agents(from base), flowspec/gsd/openspec(from core)}; lean standalone
+#   daax-devcontainer is a retag of the freshly built daax-agents.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - devcontainer/**
+      - .github/workflows/docker-publish.yml
+      - .github/actions/build-scan-push/**
+  workflow_dispatch:
+
+concurrency:
+  group: docker-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  base:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-scan-push
+        with:
+          image: jpoley/daax-agents-base
+          dockerfile: devcontainer/Dockerfile.base
+          context: devcontainer
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  core:
+    needs: base
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-scan-push
+        with:
+          image: jpoley/daax-agents-core
+          dockerfile: devcontainer/Dockerfile.core
+          context: devcontainer
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  agents:
+    needs: base
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-scan-push
+        with:
+          image: jpoley/daax-agents
+          dockerfile: devcontainer/Dockerfile
+          context: devcontainer
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  flowspec:
+    needs: core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-scan-push
+        with:
+          image: jpoley/daax-agents-flowspec
+          dockerfile: devcontainer/Dockerfile.flowspec
+          context: devcontainer
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  gsd:
+    needs: core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-scan-push
+        with:
+          image: jpoley/daax-agents-gsd
+          dockerfile: devcontainer/Dockerfile.gsd
+          context: devcontainer
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  openspec:
+    needs: core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-scan-push
+        with:
+          image: jpoley/daax-agents-openspec
+          dockerfile: devcontainer/Dockerfile.openspec
+          context: devcontainer
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  lean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-scan-push
+        with:
+          image: jpoley/daax-agents-lean
+          dockerfile: devcontainer/lean/Dockerfile
+          context: devcontainer/lean
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          dhi-username: ${{ secrets.DHI_USERNAME }}
+          dhi-token: ${{ secrets.DHI_TOKEN }}
+
+  retag-devcontainer:
+    needs: agents
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Retag daax-agents -> daax-devcontainer (legacy alias)
+        run: |
+          docker buildx imagetools create \
+            -t jpoley/daax-devcontainer:latest \
+            jpoley/daax-agents:latest
