@@ -143,12 +143,12 @@ RUN echo "=== Core Layer Installation Verification ===" \
     && echo "pnpm: $(pnpm --version)" \
     && echo "uv: $(/home/vscode/.local/bin/uv --version)" \
     && echo "--- AI Coding CLIs ---" \
-    && echo "claude: $(timeout 5 claude --version 2>&1 || echo 'not installed')" \
-    && echo "copilot: $(timeout 5 copilot --version 2>&1 || echo 'not installed')" \
-    && echo "codex: $(timeout 5 codex --version 2>&1 || echo 'not installed')" \
-    && echo "gemini: $(timeout 5 gemini --version 2>&1 || echo 'not installed')" \
-    && echo "opencode: $(timeout 5 opencode --version 2>&1 || echo 'not installed')" \
-    && echo "kiro: $(timeout 5 kiro --version 2>&1 || echo 'not installed')" \
+    && echo "claude: $(timeout 30 claude --version 2>&1 || echo 'not installed')" \
+    && echo "copilot: $(timeout 30 copilot --version 2>&1 || echo 'not installed')" \
+    && echo "codex: $(timeout 30 codex --version 2>&1 || echo 'not installed')" \
+    && echo "gemini: $(timeout 30 gemini --version 2>&1 || echo 'not installed')" \
+    && echo "opencode: $(timeout 30 opencode --version 2>&1 || echo 'not installed')" \
+    && echo "kiro: $(timeout 30 kiro --version 2>&1 || echo 'not installed')" \
     && echo "agent-browser: $(which agent-browser >/dev/null 2>&1 && echo 'installed' || echo 'not installed')" \
     && echo "mcp-inspector: $(which mcp-inspector >/dev/null 2>&1 && echo 'installed' || echo 'not installed')" \
     && echo "PATH: $PATH" \
@@ -156,11 +156,14 @@ RUN echo "=== Core Layer Installation Verification ===" \
     # non-functional image can never ship silently again. copilot and kiro
     # are intentionally excluded (copilot: musl/Node-24 base-image limitation;
     # kiro: not published to the npm registry).
+    # Timeouts are generous (60s) because in CI the linux/arm64 leg is built
+    # under QEMU emulation on an amd64 runner, where Node CLI startup is slow.
+    # A genuinely broken CLI errors immediately, so the gate still catches it.
     && echo "--- Verifying required CLIs are functional ---" \
     && for c in claude codex gemini opencode; do \
          if ! command -v "$c" >/dev/null 2>&1; then \
            echo "FATAL: $c is not installed (command not found)" >&2; exit 1; \
-         elif err="$(timeout 10 "$c" --version 2>&1 >/dev/null)"; then \
+         elif err="$(timeout 60 "$c" --version 2>&1 >/dev/null)"; then \
            echo "OK: $c"; \
          else \
            echo "FATAL: $c is installed but not functional: ${err:-(no stderr; non-zero exit or timeout)}" >&2; exit 1; \
