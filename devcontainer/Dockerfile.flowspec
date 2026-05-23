@@ -61,7 +61,11 @@ RUN pnpm install -g backlog.md \
 # the new commit SHA against the release tag before updating here.
 ARG FLOWSPEC_VERSION=v0.4.004
 ARG FLOWSPEC_COMMIT_SHA=c36dbeb3ffc871100cd80b7f79c249c7ab2d43c0
-RUN /home/vscode/.local/bin/uv tool install git+https://github.com/jpoley/flowspec.git@${FLOWSPEC_COMMIT_SHA} \
+# --no-cache: the flowspec repo ships a build-docs/docker/sbom.spdx document that
+# syft (BuildKit's SBOM generator) parses and merges into the image SBOM as if
+# its entries were installed packages — surfacing phantom Go 1.14.15 CVEs. Not
+# persisting the git checkout to ~/.cache/uv keeps it out of every build layer.
+RUN /home/vscode/.local/bin/uv tool install --no-cache git+https://github.com/jpoley/flowspec.git@${FLOWSPEC_COMMIT_SHA} \
     && echo "flowspec installed successfully (commit: ${FLOWSPEC_COMMIT_SHA}, tag: ${FLOWSPEC_VERSION})" \
     && flowspec --version
 

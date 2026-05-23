@@ -102,17 +102,20 @@ RUN set -eu; \
 # SECURITY: Package names verified against official sources (npm registry)
 # See post-create.sh for runtime installation with package existence checks
 # IMPORTANT: Configure pnpm global-bin-dir to avoid "not in PATH" errors
+# claude-code and opencode ship platform-native binaries via postinstall, which
+# pnpm v10+ blocks by default. Use pnpm's `--allow-build` flag (pnpm 10.4+) so
+# those postinstalls run during install and the CLIs are functional. The old
+# `pnpm approve-builds`/`pnpm rebuild -g` pair silently no-opped in non-TTY
+# builds, shipping broken `claude`/`opencode` shims.
 RUN pnpm config set global-bin-dir "${PNPM_HOME}" \
-    && pnpm install -g @anthropic-ai/claude-code || echo "Note: Claude Code CLI not installed (optional - may require auth)" \
+    && pnpm install -g --allow-build=@anthropic-ai/claude-code @anthropic-ai/claude-code || echo "Note: Claude Code CLI not installed (optional - may require auth)" \
     && pnpm install -g @github/copilot || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" \
     && pnpm install -g @openai/codex || echo "Note: OpenAI Codex CLI not installed (optional - requires ChatGPT subscription)" \
     && pnpm install -g @google/gemini-cli || echo "Note: Gemini CLI not installed (optional - package may not be published yet)" \
-    && pnpm install -g opencode-ai || echo "Note: OpenCode CLI not installed (optional - package may not be published yet)" \
+    && pnpm install -g --allow-build=opencode-ai opencode-ai || echo "Note: OpenCode CLI not installed (optional - package may not be published yet)" \
     && pnpm install -g agent-browser || echo "Note: Agent Browser not installed (optional)" \
     && pnpm install -g @modelcontextprotocol/inspector || echo "Note: MCP Inspector not installed (optional)" \
-    && pnpm install -g get-shit-done-cc@1.9.13 || echo "Note: Get Shit Done not installed (optional)" \
-    && pnpm approve-builds -g node-pty protobufjs tree-sitter-bash 2>/dev/null || echo "Note: pnpm approve-builds skipped (packages may not be installed)" \
-    && pnpm rebuild -g 2>/dev/null || echo "Note: pnpm rebuild skipped (optional - some AI CLI packages may not be fully rebuilt)"
+    && pnpm install -g get-shit-done-cc@1.9.13 || echo "Note: Get Shit Done not installed (optional)"
 
 # =============================================================================
 # TASK MANAGEMENT & SPEC-DRIVEN DEVELOPMENT
@@ -137,7 +140,9 @@ RUN cd "${PNPM_HOME}" && pnpm update semver --latest 2>/dev/null || echo "pnpm s
 # Install flowspec CLI from GitHub
 # Note: 'flowspec' is a SEPARATE project (jpoley/flowspec) providing specification-driven development CLI.
 # CRITICAL: Must succeed - this is an essential tool
-RUN /home/vscode/.local/bin/uv tool install git+https://github.com/jpoley/flowspec.git@v0.4.004 \
+# --no-cache: avoids persisting flowspec's git checkout (which ships an
+# sbom.spdx that syft would merge into the image SBOM as phantom Go CVEs).
+RUN /home/vscode/.local/bin/uv tool install --no-cache git+https://github.com/jpoley/flowspec.git@v0.4.004 \
     && echo "flowspec installed successfully" \
     && flowspec --version
 
