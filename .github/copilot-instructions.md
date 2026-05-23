@@ -28,7 +28,7 @@ Purpose: Container/devcontainer tooling for the Daax platform — Dockerfiles, d
 ---
 
 ## Stack
-- This is an infrastructure/tooling repo. The repo's own source is **shell scripts + Dockerfiles + JSON config** — no application code, no build at the repo root.
+- This is an infrastructure/tooling repo. The repo's own source is **shell scripts + Dockerfiles + JSON config** — no application code, no application build/runtime at the repo root (root scripts like `./push.sh`, `./rebuild.sh`, and `bun run agents:*` drive image builds, not an app build).
 - Container images built here run: Python 3 (Debian bookworm-slim), Node.js 22. Those runtimes live *inside the images*, not in this repo. Go is **not** in the base/tools images — it ships only in `Dockerfile.code-server` (downloaded from go.dev to `/usr/local/go`). The tools `Dockerfile` sets `GOPATH` and extends `PATH`; `Dockerfile.base` sets `PATH` only (no `GOPATH`).
 - Image base: `node:22-bookworm-slim`. Pinned build args (`Dockerfile.base`): `GH_VERSION=2.87.2`, `UV_VERSION=0.10.4`, `OMP_VERSION=29.5.0`. Trust the Dockerfiles when these drift.
 - Package manager: `package.json` scripts are invoked with `bun` (`bun run agents:release`). uv + pnpm are installed inside images, not used at repo root.

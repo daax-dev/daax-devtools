@@ -539,7 +539,7 @@ The devcontainer uses a **3-phase build architecture** for efficient updates:
 │  │ • Devcontainer features pre-baked (zsh, oh-my-zsh, vscode user)       │ │
 │  │ • Faster startup (no feature application at runtime)                   │ │
 │  └────────────────────────────────────────────────────────────────────────┘ │
-│  Rebuild: After every tools layer build (automatic in CI)                    │
+│  Rebuild: Manually, after every tools layer build (no CI)                    │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -571,11 +571,11 @@ The devcontainer uses a **3-phase build architecture** for efficient updates:
 
 ## Build & Publish (Manual)
 
-There is no CI in this repo — no `.github/workflows/` directory and no scheduled rebuilds. Images are built and pushed manually:
+There is no CI in this repo — no `.github/workflows/` directory and no scheduled rebuilds. Images are built and pushed manually. Paths below are relative to the repo root:
 
-- Tools + base layers: `devcontainer/build-push-docker.sh` (2-phase: base then tools).
-- Single local image: `rebuild.sh`.
-- Push to Docker Hub: `push.sh`.
+- Tools + base layers: `cd devcontainer && ./build-push-docker.sh` (2-phase: base then tools).
+- Single local image: `./rebuild.sh`.
+- Push to Docker Hub: `./push.sh`.
 
 Suggested cadence (manual): rebuild the base layer ~monthly to refresh system packages, and the tools layer ~weekly to pick up the latest AI CLIs.
 

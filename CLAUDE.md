@@ -64,7 +64,8 @@ Read the matching file **before** you:
 ## Key Commands
 ```bash
 ./rebuild.sh                       # Build daax-agents image locally
-./push.sh                          # Build + push tools image to Docker Hub
+./push.sh                          # Build + push tools image to Docker Hub (defaults to linux/amd64 only)
+./push.sh --platforms linux/amd64,linux/arm64   # Multi-arch push (push.sh is single-arch by default)
 ./push.sh --tag v1.0.0             # Push with a version tag
 ./restart.sh                       # Restart the running daax container
 cd devcontainer && ./build-push-docker.sh        # Build+push tools (cached base)
