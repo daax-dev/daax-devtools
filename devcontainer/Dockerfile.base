@@ -16,6 +16,20 @@
 # Usage:
 #   docker pull jpoley/daax-agents-base:latest
 #   Or build locally: docker build -f Dockerfile.base -t jpoley/daax-agents-base .
+
+# =============================================================================
+# fzf builder stage — build with a current Go toolchain
+# =============================================================================
+# Both Debian's apt fzf (Go 1.19.8) and the upstream release binary (Go 1.23.12)
+# ship outdated golang/stdlib carrying critical/high CVEs. Building from the
+# pinned source tag with the latest Go toolchain yields a patched static binary.
+# buildx runs this stage per target platform, so GOARCH matches automatically.
+FROM golang:1.26-bookworm AS fzf-builder
+ARG FZF_VERSION=0.73.0
+ENV CGO_ENABLED=0
+RUN go install "github.com/junegunn/fzf@v${FZF_VERSION}" \
+    && /go/bin/fzf --version
+
 FROM node:22-bookworm-slim
 
 # Install additional system dependencies not in DHI or needed explicitly
@@ -24,7 +38,7 @@ FROM node:22-bookworm-slim
 # We add: git, nodejs/npm for AI CLI tools, shell utilities
 # IMPORTANT: libc-utils is required for VS Code Server (provides getconf, getent)
 # NOTE: No "go" package - binaries copied from builder stage
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     bash \
     curl \
     git \
@@ -36,9 +50,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tar \
     gzip \
     # Developer tools
+    # NOTE: fzf is intentionally NOT installed from apt — Debian bookworm's fzf
+    # is built with Go 1.19.8, which pulls in 4 critical + ~28 high golang/stdlib
+    # CVEs. We copy in the binary built from the pinned source tag in the
+    # fzf-builder stage with the current Go toolchain instead.
     tmux \
     btop \
-    fzf \
     neovim \
     asciinema \
     # Locale support
@@ -70,10 +87,10 @@ RUN npm install -g pnpm
 
 # Install GitHub CLI from official releases with checksum verification
 # SECURITY: Alpine's github-cli package has outdated dependencies
-# Version: 2.87.2 (2026-02-20) - Latest stable
-ARG GH_VERSION=2.87.2
-ARG GH_SHA256_AMD64=18360b2243e3bf9c1457035db45f6400ae4cf957dcc2f674e69717b4e0b14d55
-ARG GH_SHA256_ARM64=e37efdd8ec98425f44175040b5037c767bbd49f192aed1de5aabc4b4ea9e22c5
+# Version: 2.92.0 (2026-05) - Latest stable
+ARG GH_VERSION=2.92.0
+ARG GH_SHA256_AMD64=b57848131bdf0c229cd35e1f2a51aa718199858b2e728410b37e89a428943ec4
+ARG GH_SHA256_ARM64=c2248526dd0160c08d3fccca2332c3c1a07c15a78b23978e77735f1b5a18cfee
 ARG TARGETARCH
 RUN case "${TARGETARCH}" in \
         "amd64") GH_ARCH="linux_amd64"; GH_SHA256="${GH_SHA256_AMD64}" ;; \
@@ -87,6 +104,12 @@ RUN case "${TARGETARCH}" in \
     && chmod +x /usr/local/bin/gh \
     && rm -rf /tmp/gh* \
     && gh --version
+
+# Install fzf — built from source with a current Go toolchain (see fzf-builder
+# stage above) to avoid the outdated golang/stdlib CVEs in the apt and release
+# binaries. Static (CGO_ENABLED=0) so it needs no runtime libs.
+COPY --from=fzf-builder /go/bin/fzf /usr/local/bin/fzf
+RUN chmod +x /usr/local/bin/fzf && fzf --version
 
 
 # Create vscode user (matching devcontainer convention)
@@ -106,14 +129,14 @@ ENV PNPM_HOME="/home/vscode/.local/share/pnpm"
 ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:/usr/local/bin:${PATH}"
 
 # Install uv (Python package manager) with SHA256 checksum verification
-# Version: 0.10.4 (2026-02-21) - Latest stable
-# Checksums for GNU libc tarballs from uv 0.10.4 release assets:
+# Version: 0.11.16 (2026-05) - Latest stable
+# Checksums for GNU libc tarballs from uv 0.11.16 release assets:
 #   - linux/amd64: uv-x86_64-unknown-linux-gnu.tar.gz
 #   - linux/arm64: uv-aarch64-unknown-linux-gnu.tar.gz
-# See: https://github.com/astral-sh/uv/releases/download/0.10.4/
-ARG UV_VERSION=0.10.4
-ARG UV_SHA256_AMD64=6b52a47358deea1c5e173278bf46b2b489747a59ae31f2a4362ed5c6c1c269f7
-ARG UV_SHA256_ARM64=c84a6e6405715caa6e2f5ef8e5f29a5d0bc558a954e9f1b5c082b9d4708c222e
+# See: https://github.com/astral-sh/uv/releases/download/0.11.16/
+ARG UV_VERSION=0.11.16
+ARG UV_SHA256_AMD64=74947fe2c03315cf07e82ab3acc703eddef01aba4d5232a98e4c6825ec116131
+ARG UV_SHA256_ARM64=8c9d0f0ee98166ae6ab198747519ba6f25db29d185bd2ae5960ecebc91a5c22a
 ARG TARGETARCH
 RUN mkdir -p /home/vscode/.local/bin \
     && case "${TARGETARCH}" in \
@@ -130,10 +153,10 @@ RUN mkdir -p /home/vscode/.local/bin \
     && /home/vscode/.local/bin/uv --version
 
 # Install oh-my-posh with pinned version and SHA256 checksum verification
-# Version: 29.5.0 (2026-02-21) - Latest stable
-ARG OMP_VERSION=29.5.0
-ARG OMP_SHA256_AMD64=8265f10034027271681bc0dbd2242ca554a863995db2c4da885e9926bcc6ec69
-ARG OMP_SHA256_ARM64=d1caf6b7e11523b01017dee5e9c59a1e8d94c39bd91e2be423458104367f62b5
+# Version: 29.14.0 (2026-05) - Latest stable
+ARG OMP_VERSION=29.14.0
+ARG OMP_SHA256_AMD64=7f345282675ab5e93edea15975642b55f3639ce5e0f0f39dfdb9fecb4c025e02
+ARG OMP_SHA256_ARM64=96cbdfe6892c8d955e5aef5f64322dd0947db1d3328c99873e8d0a6d2914c395
 RUN case "${TARGETARCH}" in \
         "amd64") OMP_ARCH="amd64"; OMP_SHA256="${OMP_SHA256_AMD64}" ;; \
         "arm64") OMP_ARCH="arm64"; OMP_SHA256="${OMP_SHA256_ARM64}" ;; \
