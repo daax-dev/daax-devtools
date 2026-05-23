@@ -1,7 +1,8 @@
 # daax-devtools Integration: Programmable Egress Proxy (cooperative mode, Phase 2)
 
 **Status**: Design — Phase 2, not yet implemented
-**Canonical PRD**: `daax-dev/dx` → `arch/prd/programmable-egress-proxy.md` (v1.3.0)
+**Canonical PRD**: `daax-dev/daax-egress` → `docs/prd/programmable-egress-proxy.md` (v2.0.0; mirrored in `daax-dev/dx` → `arch/prd/`)
+**Proxy binary**: [`daax-dev/daax-egress`](https://github.com/daax-dev/daax-egress) — devtools runs it as a sidecar; this repo owns only the *cooperative adapter*
 **Tracking issue**: [daax-dev/dx#55](https://github.com/daax-dev/dx/issues/55)
 
 > This doc is the **daax-devtools-specific** slice of the cross-cutting PRD. devtools is a
@@ -23,18 +24,19 @@ guarantee that nanofuse forced mode does. Any UX or doc must say "egress is *ste
 *enforced*" for this target. Workloads that need a hard boundary belong in nanofuse.
 
 This is why devtools is sequenced **after** the nanofuse v1: ship the model where the guarantee
-holds, then reuse the shared engine here for convenience with honest framing.
+holds, then run the same `daax-egress` binary here for convenience with honest framing.
 
 ---
 
 ## What lands in daax-devtools
 
-The proxy data plane / policy engine / secret store / audit schema come from the **shared Go
-library** built in the nanofuse v1. devtools owns only the **cooperative adapter**:
+The proxy itself is the **standalone `daax-egress` binary** (shipped from its own repo). devtools
+runs that binary as a sidecar and configures it over its control API — it does not embed it. The
+devtools repo owns only the **cooperative adapter**:
 
 | Area | devtools-specific responsibility | Touches |
 |------|----------------------------------|---------|
-| Proxy placement | Run the egress proxy as a **sidecar** (separate container or host process) on the docker network the devtools container attaches to | `docker-compose.yml` (in daax-web), devcontainer network config |
+| Proxy placement | Run the **`daax-egress` binary** as a **sidecar** (separate container or host process) on the docker network the devtools container attaches to | `docker-compose.yml` (in daax-web), devcontainer network config |
 | Steering | Set `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` container-wide; **sanitize `NO_PROXY`** so it cannot be set to `*` to disable steering | `devcontainer/devcontainer.json`, `devcontainer/postCreate.sh` |
 | CA trust | Add the per-run CA **public** cert to the container CA bundle at build/postCreate time; document Docker/BuildKit explicit-trust needs | `devcontainer/Dockerfile*`, `postCreate.sh` |
 | Hardening (best-effort) | Drop `CAP_NET_RAW`, forbid host network mode, restrict Docker socket exposure, add per-container netns nftables rules where the runtime allows | container run config |
@@ -56,7 +58,7 @@ library** built in the nanofuse v1. devtools owns only the **cooperative adapter
 
 ## Dependencies / sequencing
 
-- **Depends on the nanofuse v1** shipping the shared library (policy engine, proxy data plane,
+- **Depends on the nanofuse v1** shipping the `daax-egress` binary (policy engine, proxy data plane,
   secret store, audit schema, per-run CA).
 - Then this adapter wires the sidecar + steering + CA trust + cap hardening into the devcontainer.
 
