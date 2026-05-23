@@ -12,7 +12,7 @@ For each active language, this file records: linter/formatter, validation, and s
 
 ### Shell (bash)
 - Version target: bash 5.x (scripts use bashisms: `[[ ]]`, arrays, `BASH_SOURCE`).
-- Required prologue: `set -euo pipefail` (most scripts) — at minimum `set -e`, matching existing scripts (`rebuild.sh`, `restart.sh` use `set -e`; `push.sh`, `build-push-docker.sh`, `rebuild-code-server.sh` use `set -euo pipefail`). Prefer `set -euo pipefail` for new scripts.
+- Preferred prologue: `set -euo pipefail` — at minimum `set -e`, matching existing scripts (`rebuild.sh`, `restart.sh` use `set -e`; `push.sh`, `build-push-docker.sh`, `rebuild-code-server.sh` use `set -euo pipefail`). Use `set -euo pipefail` for new scripts. Exception: `devcontainer/postCreate.sh` intentionally omits it because it relies on non-fatal `|| echo` best-effort steps (documented in its header).
 - Linter: `shellcheck` (not vendored — install it). Run on every changed `.sh`. Fallback when unavailable: `bash -n <script>` (syntax only) and state that shellcheck was not run.
 - Style: quote all expansions (`"$var"`), use `"$(...)"` not backticks, no `eval`. Validate version-tag / user input before use (see `validate_version_tag` in `build-push-docker.sh`).
 - Keep scripts executable (`chmod +x`).

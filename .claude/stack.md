@@ -17,8 +17,8 @@ This is an infrastructure / container-tooling repo. The repo's own source is she
 - Node.js 22 + pnpm.
 - Python 3 (system `python3` + `uv`, `UV_VERSION=0.10.4`).
 - GitHub CLI `GH_VERSION=2.87.2`; oh-my-posh `OMP_VERSION=29.5.0`.
-- Go is **not** in the base/tools images. It is installed only in `Dockerfile.code-server` (downloaded from go.dev to `/usr/local/go`). The base/tools Dockerfiles set `GOPATH`/`PATH` env vars but do not install a Go toolchain.
-- AI CLIs (tools layer, pinned in `Dockerfile` VERSION TRACKING block): Claude Code, GitHub Copilot, OpenAI Codex, Google Gemini, OpenCode, Backlog.md, Flowspec, GSD, Kiro, MCP Inspector. Versions are pinned in the Dockerfile header — keep them in sync when bumping.
+- Go is **not** in the base/tools images. It is installed only in `Dockerfile.code-server` (downloaded from go.dev to `/usr/local/go`). The tools `Dockerfile` sets `GOPATH` and extends `PATH`; `Dockerfile.base` sets `PATH` only (no `GOPATH`). Neither installs a Go toolchain.
+- AI CLIs (tools layer, recorded in the `Dockerfile` VERSION TRACKING block): Claude Code, GitHub Copilot, OpenAI Codex, Google Gemini, OpenCode, Backlog.md, Flowspec, GSD, Kiro, MCP Inspector. The VERSION TRACKING block is informational — some tools are pinned via `ARG`, others install as latest. Keep the recorded versions in sync when bumping a pinned tool.
 
 ## Image Variants
 - `daax-agents-base` (Dockerfile.base) — stable base, rebuild ~monthly.
@@ -40,7 +40,6 @@ This is an infrastructure / container-tooling repo. The repo's own source is she
 ## Deployment Targets / Integration
 - Consumed by daax-cli and daax-web for AI coding sessions.
 - `restart.sh` runs the `daax` container locally on ports 4200/4201, mounting `DAAX_WORKSPACE` (default `~/prj`) and the Docker socket.
-- Tailscale used as a network deployment target (per repo docs).
 
 ## Explicitly Not in Stack
 - No `docker-compose.yml` in this repo — compose orchestration lives in the daax-web project.

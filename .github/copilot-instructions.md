@@ -1,6 +1,6 @@
 # Copilot Instructions
 
-GitHub Copilot reads this file automatically. Rules here are enforced in every session.
+GitHub Copilot reads this file automatically and loads it as instructions for each session.
 
 ---
 
@@ -29,7 +29,7 @@ Purpose: Container/devcontainer tooling for the Daax platform — Dockerfiles, d
 
 ## Stack
 - This is an infrastructure/tooling repo. The repo's own source is **shell scripts + Dockerfiles + JSON config** — no application code, no build at the repo root.
-- Container images built here run: Python 3 (Debian bookworm-slim), Node.js 22. Those runtimes live *inside the images*, not in this repo. Go is **not** in the base/tools images — it ships only in `Dockerfile.code-server` (downloaded from go.dev to `/usr/local/go`); base/tools Dockerfiles only set `GOPATH`/`PATH`.
+- Container images built here run: Python 3 (Debian bookworm-slim), Node.js 22. Those runtimes live *inside the images*, not in this repo. Go is **not** in the base/tools images — it ships only in `Dockerfile.code-server` (downloaded from go.dev to `/usr/local/go`). The tools `Dockerfile` sets `GOPATH` and extends `PATH`; `Dockerfile.base` sets `PATH` only (no `GOPATH`).
 - Image base: `node:22-bookworm-slim`. Pinned build args (`Dockerfile.base`): `GH_VERSION=2.87.2`, `UV_VERSION=0.10.4`, `OMP_VERSION=29.5.0`. Trust the Dockerfiles when these drift.
 - Package manager: `package.json` scripts are invoked with `bun` (`bun run agents:release`). uv + pnpm are installed inside images, not used at repo root.
 - Registry: **Docker Hub** (`docker.io/jpoley/daax-agents`, `jpoley/daax-agents-base`). The scripts (`push.sh`, `build-push-docker.sh`, `package.json`) all target Docker Hub.
@@ -38,7 +38,7 @@ Purpose: Container/devcontainer tooling for the Daax platform — Dockerfiles, d
 ---
 
 ## Code Conventions
-- Every shell script starts with `set -euo pipefail` (or at minimum `set -e`, matching existing scripts). Quote all variable expansions. No `eval`.
+- Most shell scripts start with `set -euo pipefail` (or at minimum `set -e`, matching existing scripts); `devcontainer/postCreate.sh` intentionally omits it because it relies on non-fatal best-effort steps. Quote all variable expansions. No `eval`.
 - Run `shellcheck` on changed `.sh` files before committing. If shellcheck is not installed, run `bash -n <script>` as a fallback and state that shellcheck was unavailable.
 - Validate Dockerfile changes with `docker build` for the affected file/stage. The build succeeding is the test.
 - Keep pinned tool versions (the `# VERSION TRACKING` block in `Dockerfile`/`Dockerfile.base`) accurate when bumping a CLI.
