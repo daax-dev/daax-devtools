@@ -17,7 +17,7 @@
 #   docker pull jpoley/daax-agents:latest
 #   Or reference in devcontainer.json: "image": "jpoley/daax-agents:latest"
 #
-# Automatic Rebuild Strategy:
+# Rebuild Cadence:
 #   - Base image: Rebuild monthly or when system deps change
 #   - Tools image: Rebuild weekly or when AI CLIs release updates
 #   - Builds/pushes are run manually via push.sh / build-push-docker.sh (no CI)

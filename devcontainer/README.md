@@ -573,7 +573,8 @@ The devcontainer uses a **3-phase build architecture** for efficient updates:
 
 There is no CI in this repo — no `.github/workflows/` directory and no scheduled rebuilds. Images are built and pushed manually. Paths below are relative to the repo root:
 
-- Tools + base layers: `cd devcontainer && ./build-push-docker.sh` (2-phase: base then tools).
+- Tools layer (cached base): `cd devcontainer && ./build-push-docker.sh`.
+- Full rebuild (base + tools): `cd devcontainer && ./build-push-docker.sh --base`.
 - Single local image: `./rebuild.sh`.
 - Push to Docker Hub: `./push.sh`.
 

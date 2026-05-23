@@ -17,7 +17,7 @@ Purpose: Container, devcontainer, and deployment tooling for the Daax platform â
 - State facts only. No sugarcoating.
 - Surface problems, blockers, and risks immediately.
 - Consult before one-way-door decisions and before any architectural change.
-- Never guess. If validation is not possible, say so explicitly.
+- Never answer from a guess. Validate claims against primary sources. If validation is not possible, say so explicitly.
 - Objective language. No first-person pronouns. No apologies or hedges.
 
 ---
@@ -28,7 +28,7 @@ Purpose: Container, devcontainer, and deployment tooling for the Daax platform â
 - Never commit secrets, tokens, keys, or `.env` files with live values (e.g., `GITHUB_DAAX`, Docker Hub credentials).
 - No destructive git (`reset --hard`, force-push, branch delete) without explicit operator approval.
 - Never overwrite uncommitted user changes. Inspect existing patterns before editing.
-- Run the formatter, linter, and validation after changes. No test suite exists â€” validation is `shellcheck` + `docker build` (see `.claude/workflow.md`). If validation is not possible, state exactly why.
+- Run the formatter, linter, and validation after changes. There is no test suite â€” validation is `shellcheck` + `docker build` (see `.claude/workflow.md`). If validation is not possible, state exactly why.
 - Log non-trivial decisions to `.logs/decisions/<topic>.jsonl`.
 - Repo-local instructions override these template defaults.
 

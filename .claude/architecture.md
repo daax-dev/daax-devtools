@@ -13,7 +13,7 @@ This is a container-image / devcontainer tooling repo, not a running service. Se
 - Specialized variants (`core`, `flowspec`, `gsd`, `openspec`, `code-server`) and the `lean`/`starter-app` devcontainers branch from this hierarchy. Keep them consistent with the base where they share tooling.
 
 ## Build & Publish Rules
-- Multi-arch (`linux/amd64,linux/arm64`) via Docker Buildx with a named builder.
+- Multi-arch (`linux/amd64,linux/arm64`) via Docker Buildx with a named builder for publish flows (`build-push-docker.sh`). `push.sh` defaults to single-arch (`linux/amd64`) for local/ad-hoc pushes; pass `--platforms linux/amd64,linux/arm64` for multi-arch.
 - Registry: Docker Hub. Build cache pushed to `:buildcache` tags to speed CI-less rebuilds.
 - Version tags must match `vX.Y.Z[-suffix]` (enforced in `build-push-docker.sh`); `:latest` always published.
 - Pin tool versions in Dockerfiles; record them in the VERSION TRACKING comment block.
@@ -25,7 +25,7 @@ This is a container-image / devcontainer tooling repo, not a running service. Se
 ## Anti-Patterns (refuse these)
 - Collapsing the base/tools split, or duplicating base-layer deps into the tools layer.
 - Unpinned tool versions, or bumping a version without updating the VERSION TRACKING block.
-- Single-arch images where multi-arch is expected.
+- Single-arch images in published release builds.
 - Secrets baked into image layers or committed to the repo.
 - "Temporary" workarounds in build scripts without an expiry date and an owner.
 
