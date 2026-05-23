@@ -52,7 +52,8 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     # Developer tools
     # NOTE: fzf is intentionally NOT installed from apt — Debian bookworm's fzf
     # is built with Go 1.19.8, which pulls in 4 critical + ~28 high golang/stdlib
-    # CVEs. We install the upstream release binary (modern Go) below instead.
+    # CVEs. We copy in the binary built from the pinned source tag in the
+    # fzf-builder stage with the current Go toolchain instead.
     tmux \
     btop \
     neovim \
