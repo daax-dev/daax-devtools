@@ -24,15 +24,19 @@
 # =============================================================================
 # VERSION TRACKING - Update these when upgrading AI CLI tools
 # =============================================================================
-# Last updated: 2026-02-21
-# Claude Code: @anthropic-ai/claude-code (latest)
-# GitHub Copilot: @github/copilot (latest)
-# OpenAI Codex: @openai/codex (latest)
-# Google Gemini: @google/gemini-cli (latest)
-# OpenCode: opencode-ai (latest)
-# Kiro CLI: @anthropic-ai/kiro (latest)
-# Agent Browser: agent-browser (latest)
-# MCP Inspector: @modelcontextprotocol/inspector (latest)
+# Last updated: 2026-05-28
+# Claude Code:    @anthropic-ai/claude-code@2.1.153   (pinned; dist-tag latest)
+# GitHub Copilot: @github/copilot@1.0.54              (pinned; dist-tag latest)
+# OpenAI Codex:   @openai/codex@0.134.0               (pinned; dist-tag latest)
+# Google Gemini:  @google/gemini-cli@0.44.0           (pinned; dist-tag latest)
+# OpenCode:       opencode-ai                         (unpinned — out of scope of 2026-05 pin pass)
+# Kiro CLI:       @anthropic-ai/kiro                  (UNAVAILABLE — npm 404; install falls back gracefully)
+# Agent Browser:  agent-browser                       (unpinned — out of scope)
+# MCP Inspector:  @modelcontextprotocol/inspector     (unpinned — out of scope)
+#
+# Pin pass scope: daax-dev/daax-web issues #3, #6, #7, #8, #9, master #4.
+# Issue #5 (Kiro) stays open — @anthropic-ai/kiro is not on the npm registry.
+# Issue #10 (OpenClaw) stays open — no install exists in this repo.
 # =============================================================================
 
 # Use the base image with all stable dependencies
@@ -89,10 +93,10 @@ ARG CLI_REFRESH=0
 # glibc and its JS fallback requires Node >=24; do not bodge it in this layer.
 RUN echo "CLI refresh token: ${CLI_REFRESH}" \
     && pnpm config set global-bin-dir "${PNPM_HOME}" \
-    && pnpm install -g --allow-build=@anthropic-ai/claude-code @anthropic-ai/claude-code \
-    && ( pnpm install -g @github/copilot || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" ) \
-    && pnpm install -g @openai/codex \
-    && pnpm install -g @google/gemini-cli \
+    && pnpm install -g --allow-build=@anthropic-ai/claude-code @anthropic-ai/claude-code@2.1.153 \
+    && ( pnpm install -g @github/copilot@1.0.54 || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" ) \
+    && pnpm install -g @openai/codex@0.134.0 \
+    && pnpm install -g @google/gemini-cli@0.44.0 \
     && pnpm install -g --allow-build=opencode-ai opencode-ai \
     && ( pnpm install -g @anthropic-ai/kiro || echo "Note: Kiro CLI not installed (optional - may require auth)" ) \
     && ( pnpm install -g agent-browser || echo "Note: Agent Browser not installed (optional)" ) \
@@ -131,6 +135,11 @@ LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.base.name="jpoley/daax-agents-base:latest"
 LABEL ai.daax.variant="core"
 LABEL ai.daax.includes="claude-code,copilot,codex,gemini,opencode,kiro,agent-browser,mcp-inspector"
+LABEL ai.daax.versions.claude-code="2.1.153"
+LABEL ai.daax.versions.copilot="1.0.54"
+LABEL ai.daax.versions.codex="0.134.0"
+LABEL ai.daax.versions.gemini-cli="0.44.0"
+LABEL ai.daax.versions.pinned-as-of="2026-05-28"
 
 # Verify installations and print versions for debugging
 # Note: Some CLIs may hang on --version, so we use timeout for safety:

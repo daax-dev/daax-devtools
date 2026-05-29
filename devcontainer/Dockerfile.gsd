@@ -22,8 +22,8 @@
 # =============================================================================
 # VERSION TRACKING - Update these when upgrading tools
 # =============================================================================
-# Last updated: 2026-02-21
-# get-shit-done-cc: latest (from npm)
+# Last updated: 2026-05-28
+# get-shit-done-cc: 1.42.3 (pinned; dist-tag latest as of 2026-05-28)
 # =============================================================================
 
 # Use the core image with AI CLIs
@@ -43,7 +43,7 @@ ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:${GOPATH}/bin:/usr/local/bin:${PA
 # SECURITY NOTE: Unpinned for MVP. For production hardening, pin to specific version.
 # The install MUST succeed - fail build on error rather than silently continuing.
 # See Copilot review on PR #286 for tracking.
-RUN pnpm install -g get-shit-done-cc \
+RUN pnpm install -g get-shit-done-cc@1.42.3 \
     && echo "get-shit-done-cc installed successfully" \
     && (gsd --version || echo "Note: gsd installed but may not have --version flag")
 
@@ -76,6 +76,8 @@ LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.base.name="jpoley/daax-agents-core:latest"
 LABEL ai.daax.variant="gsd"
 LABEL ai.daax.includes="core,get-shit-done-cc"
+LABEL ai.daax.versions.get-shit-done-cc="1.42.3"
+LABEL ai.daax.versions.pinned-as-of="2026-05-28"
 
 # Verify installations and print versions for debugging
 RUN echo "=== GSD Layer Installation Verification ===" \
