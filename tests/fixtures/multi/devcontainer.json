@@ -1,0 +1,8 @@
+{
+  /* Multi-service devcontainer exercising first-class modules, the
+     GenericContainer fallback, and depends_on ordering. */
+  "name": "multi-fixture",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+}

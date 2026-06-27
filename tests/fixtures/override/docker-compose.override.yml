@@ -1,0 +1,7 @@
+services:
+  db:
+    # Override the base image tag and add a user; the base password/db must
+    # survive the per-key environment merge.
+    image: postgres:16
+    environment:
+      POSTGRES_USER: overuser
