@@ -269,7 +269,9 @@ function renderTest(
   l.push(`import { startTestServices, type TestServices } from "${setupModule}";`);
   l.push("");
   l.push('describe("backing services", () => {');
-  l.push("  let services: TestServices;");
+  // Possibly undefined: beforeAll may throw before assignment, in which case
+  // afterAll's optional-chained `services?.stop()` is a safe no-op.
+  l.push("  let services: TestServices | undefined;");
   l.push("");
   l.push("  // Start containers once for the whole suite, not per test.");
   l.push("  beforeAll(async () => {");
@@ -288,7 +290,7 @@ function renderTest(
   for (const svc of ordered) {
     const id = ident.get(svc.name)!;
     l.push(`  it("starts ${svc.name} and exposes a connection string", () => {`);
-    l.push(`    expect(services.${id}.connectionString).toBeTruthy();`);
+    l.push(`    expect(services?.${id}.connectionString).toBeTruthy();`);
     l.push("  });");
     l.push("");
   }

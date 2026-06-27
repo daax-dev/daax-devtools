@@ -118,13 +118,18 @@ export function classifyImage(repo: string): ServiceKind {
 
 /** Split an image reference into `{ repo, tag }`. */
 export function splitImage(image: string): { repo: string; tag: string } {
+  // Strip a digest (`@sha256:...`) first so it is not mistaken for a `:tag`.
+  const atIdx = image.indexOf("@");
+  const ref = atIdx === -1 ? image : image.slice(0, atIdx);
+  const digest = atIdx === -1 ? "" : image.slice(atIdx + 1);
+
   // Tag is the part after the LAST colon, but only if that segment has no "/"
   // (otherwise the colon belongs to a registry:port host).
-  const lastColon = image.lastIndexOf(":");
-  if (lastColon === -1) return { repo: image, tag: "latest" };
-  const maybeTag = image.slice(lastColon + 1);
-  if (maybeTag.includes("/")) return { repo: image, tag: "latest" };
-  return { repo: image.slice(0, lastColon), tag: maybeTag };
+  const lastColon = ref.lastIndexOf(":");
+  if (lastColon === -1) return { repo: ref, tag: digest || "latest" };
+  const maybeTag = ref.slice(lastColon + 1);
+  if (maybeTag.includes("/")) return { repo: ref, tag: digest || "latest" };
+  return { repo: ref.slice(0, lastColon), tag: maybeTag };
 }
 
 /**

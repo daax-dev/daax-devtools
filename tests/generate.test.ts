@@ -52,6 +52,19 @@ describe("image classification", () => {
       tag: "1.2",
     });
   });
+
+  test("splitImage handles @digest references", () => {
+    expect(splitImage("postgres@sha256:abc")).toEqual({
+      repo: "postgres",
+      tag: "sha256:abc",
+    });
+    expect(splitImage("postgres:15@sha256:abc")).toEqual({
+      repo: "postgres",
+      tag: "15",
+    });
+    // Digest-pinned image still classifies correctly.
+    expect(classifyImage(splitImage("postgres@sha256:abc").repo).id).toBe("postgres");
+  });
 });
 
 describe("JSONC parsing", () => {
@@ -312,6 +325,9 @@ describe("TypeScript generation", () => {
     expect(ts.test).toContain("await startTestServices()");
     expect(ts.test).toContain("afterAll(async () => {");
     expect(ts.test).not.toContain("beforeEach");
+    // `services` is typed optional to match the optional-chained teardown/asserts.
+    expect(ts.test).toContain("let services: TestServices | undefined;");
+    expect(ts.test).toContain("expect(services?.cache.connectionString).toBeTruthy()");
   });
 });
 
