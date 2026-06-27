@@ -99,8 +99,12 @@ function renderSetup(
   l.push("  const started: { stop(): Promise<unknown> }[] = [];");
   l.push("  // Stop every container in reverse start order WITHOUT mutating");
   l.push("  // `started`; attempt all stops even if one fails, then rethrow the");
-  l.push("  // first error so teardown is complete and idempotent.");
+  l.push("  // first error. A `stopped` guard makes repeated calls a no-op so");
+  l.push("  // teardown is idempotent.");
+  l.push("  let stopped = false;");
   l.push("  const stop = async (): Promise<void> => {");
+  l.push("    if (stopped) return;");
+  l.push("    stopped = true;");
   l.push("    let firstError: unknown;");
   l.push("    for (let i = started.length - 1; i >= 0; i--) {");
   l.push("      try {");

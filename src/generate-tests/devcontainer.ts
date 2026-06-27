@@ -54,7 +54,13 @@ export function parseJsonc(text: string): unknown {
     if (inBlockComment) {
       if (ch === "*" && next === "/") {
         inBlockComment = false;
+        // Replace the comment with a space so adjacent tokens stay separated
+        // (e.g. `1/*c*/2` must not become `12`).
+        out += " ";
         i++;
+      } else if (ch === "\n") {
+        // Preserve line breaks so JSON.parse error positions stay accurate.
+        out += "\n";
       }
       continue;
     }

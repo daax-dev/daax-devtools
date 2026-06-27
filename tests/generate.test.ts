@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { mkdtempSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { servicesFromComposeText } from "../src/generate-tests/compose.js";
-import { resolveServices } from "../src/generate-tests/devcontainer.js";
+import { parseJsonc, resolveServices } from "../src/generate-tests/devcontainer.js";
 import {
   classifyImage,
   splitImage,
@@ -51,6 +51,26 @@ describe("image classification", () => {
       repo: "registry:5000/team/img",
       tag: "1.2",
     });
+  });
+});
+
+describe("JSONC parsing", () => {
+  test("strips // and block comments and trailing commas", () => {
+    const obj = parseJsonc(
+      '{\n  // line comment\n  "a": 1,\n  "b": 2, /* trailing */\n}',
+    );
+    expect(obj).toEqual({ a: 1, b: 2 });
+  });
+
+  test("block comments are replaced by whitespace, not concatenated", () => {
+    // Without whitespace substitution, 1/* */ next to a token could merge.
+    const obj = parseJsonc('{ "a": 1/* c */, "b": 2 }');
+    expect(obj).toEqual({ a: 1, b: 2 });
+  });
+
+  test("preserves string content containing comment-like sequences", () => {
+    const obj = parseJsonc('{ "url": "http://x/y", "p": "a/*b*/c" }');
+    expect(obj).toEqual({ url: "http://x/y", p: "a/*b*/c" });
   });
 });
 
@@ -262,6 +282,12 @@ describe("TypeScript generation", () => {
     expect(ts.setup).not.toContain("started.reverse()");
     expect(ts.setup).toContain("for (let i = started.length - 1; i >= 0; i--)");
     expect(ts.setup).toContain("if (firstError !== undefined) throw firstError;");
+  });
+
+  test("teardown is idempotent (guarded against repeated calls)", () => {
+    expect(ts.setup).toContain("let stopped = false;");
+    expect(ts.setup).toContain("if (stopped) return;");
+    expect(ts.setup).toContain("stopped = true;");
   });
 
   test("startup failure preserves the original error even if teardown fails", () => {
