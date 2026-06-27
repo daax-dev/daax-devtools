@@ -116,6 +116,15 @@ services:
       'services:\n  db:\n    image: postgres:15\n    ports: ["5432-5433"]',
     );
     expect(ranged[0].port).toBe(5432); // default, not a truncated range
+    // Numeric YAML port entries are range-validated too.
+    const badNum = servicesFromComposeText(
+      "services:\n  widget:\n    image: ghcr.io/acme/widget:1\n    ports: [70000]\n",
+    );
+    expect(badNum).toEqual([]); // 70000 rejected -> no port -> skipped
+    const okNum = servicesFromComposeText(
+      "services:\n  db:\n    image: postgres:15\n    ports: [5432]\n",
+    );
+    expect(okNum[0].port).toBe(5432);
     // A generic image whose only port is a range cannot be resolved -> skipped.
     const skipped: string[] = [];
     const generic = servicesFromComposeText(

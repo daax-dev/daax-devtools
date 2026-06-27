@@ -11,8 +11,6 @@ export type Lang = "go" | "ts" | "both";
 
 export interface GenerateOptions {
   lang?: Lang;
-  /** Output directory the relative file paths are resolved against. */
-  outDir?: string;
   /** Go package name. */
   goPackage?: string;
   /** Base name for the TypeScript files. */
@@ -20,7 +18,7 @@ export interface GenerateOptions {
 }
 
 export interface GeneratedFile {
-  /** Path relative to `outDir`. */
+  /** File name relative to the caller's chosen output directory. */
   path: string;
   content: string;
   language: "go" | "typescript";

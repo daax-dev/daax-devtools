@@ -154,7 +154,9 @@ function extractPorts(raw: RawService): number[] {
 
 /** Extract the container-side port from a compose `ports` entry. */
 function parseContainerPort(entry: unknown): number | null {
-  if (typeof entry === "number") return entry;
+  // Validate numeric entries the same way as strings so out-of-range values
+  // like `ports: [0]` or `ports: [70000]` are rejected, not propagated.
+  if (typeof entry === "number") return parsePort(String(entry));
   if (entry && typeof entry === "object") {
     // Long syntax: { target: 5432, published: 5432 }
     const target = (entry as { target?: unknown }).target;
