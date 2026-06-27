@@ -86,12 +86,10 @@ export function servicesFromCompose(
     const { repo, tag } = splitImage(image);
     const kind = classifyImage(repo);
     const declaredPorts = extractPorts(raw);
-    const port =
-      declaredPorts.length > 0
-        ? declaredPorts[0]
-        : kind.defaultPort > 0
-          ? kind.defaultPort
-          : 0;
+    let port = declaredPorts[0] ?? (kind.defaultPort > 0 ? kind.defaultPort : 0);
+    if (kind.defaultPort > 0 && declaredPorts.includes(kind.defaultPort)) {
+      port = kind.defaultPort;
+    }
 
     if (port === 0) {
       // An unrecognized image with no ports/expose has no port to map; emitting
