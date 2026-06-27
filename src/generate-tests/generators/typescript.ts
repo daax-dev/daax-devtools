@@ -123,7 +123,16 @@ function renderSetup(
   l.push("      stop,");
   l.push("    };");
   l.push("  } catch (err) {");
-  l.push("    await stop();");
+  l.push("    // Preserve the original startup error; if teardown also fails,");
+  l.push("    // surface both rather than masking the root cause.");
+  l.push("    try {");
+  l.push("      await stop();");
+  l.push("    } catch (teardownErr) {");
+  l.push("      throw new AggregateError(");
+  l.push("        [err, teardownErr],");
+  l.push('        "startup failed and cleanup of started containers also failed",');
+  l.push("      );");
+  l.push("    }");
   l.push("    throw err;");
   l.push("  }");
   l.push("}");

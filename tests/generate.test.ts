@@ -264,6 +264,15 @@ describe("TypeScript generation", () => {
     expect(ts.setup).toContain("if (firstError !== undefined) throw firstError;");
   });
 
+  test("startup failure preserves the original error even if teardown fails", () => {
+    // The catch must rethrow the startup error; a teardown failure is surfaced
+    // as supplemental context via AggregateError, never masking the root cause.
+    expect(ts.setup).toContain("} catch (teardownErr) {");
+    expect(ts.setup).toContain("throw new AggregateError(");
+    expect(ts.setup).toContain("[err, teardownErr],");
+    expect(ts.setup).toContain("    throw err;");
+  });
+
   test("sample suite shares containers via beforeAll/afterAll", () => {
     expect(ts.test).toContain('import { afterAll, beforeAll, describe, expect, it } from "vitest";');
     expect(ts.test).toContain("beforeAll(async () => {");
