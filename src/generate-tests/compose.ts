@@ -170,8 +170,12 @@ function parseContainerPort(entry: unknown): number | null {
 }
 
 function parsePort(value: string): number | null {
-  const n = Number.parseInt(interpolate(value.trim()), 10);
-  return Number.isInteger(n) && n > 0 && n < 65536 ? n : null;
+  const s = interpolate(value.trim());
+  // Reject anything that is not purely a port number — e.g. Compose port
+  // ranges like "5432-5433" must not be silently truncated to 5432.
+  if (!/^\d+$/.test(s)) return null;
+  const n = Number.parseInt(s, 10);
+  return n > 0 && n < 65536 ? n : null;
 }
 
 /** Normalize compose `environment` (list or map form) into a string map. */

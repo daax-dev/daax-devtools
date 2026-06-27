@@ -104,6 +104,29 @@ services:
     expect(services[0].port).toBe(5432);
   });
 
+  test("rejects port ranges rather than silently truncating them", () => {
+    // Range in the published part is fine (container port is unambiguous)...
+    const ok = servicesFromComposeText(
+      'services:\n  db:\n    image: postgres:15\n    ports: ["8000-8005:5432"]',
+    );
+    expect(ok[0].port).toBe(5432);
+    // ...but a range container port has no single value, so it is not parsed
+    // (here it falls back to the kind default rather than becoming 5432).
+    const ranged = servicesFromComposeText(
+      'services:\n  db:\n    image: postgres:15\n    ports: ["5432-5433"]',
+    );
+    expect(ranged[0].port).toBe(5432); // default, not a truncated range
+    // A generic image whose only port is a range cannot be resolved -> skipped.
+    const skipped: string[] = [];
+    const generic = servicesFromComposeText(
+      'services:\n  widget:\n    image: ghcr.io/acme/widget:1\n    ports: ["5000-5005"]',
+      undefined,
+      (n, r) => skipped.push(`${n}:${r}`),
+    );
+    expect(generic).toEqual([]);
+    expect(skipped[0]).toContain("widget:");
+  });
+
   test("ignores build-only services without an image", () => {
     const services = servicesFromComposeText(
       "services:\n  worker:\n    build: ./worker\n",
@@ -224,6 +247,12 @@ describe("TypeScript generation", () => {
     );
     expect(ts.setup).toContain("new GenericContainer(\"rabbitmq:3\")");
     expect(ts.setup).toContain(".withExposedPorts(5672)");
+  });
+
+  test("teardown stops all containers without mutating and rethrows", () => {
+    expect(ts.setup).not.toContain("started.reverse()");
+    expect(ts.setup).toContain("for (let i = started.length - 1; i >= 0; i--)");
+    expect(ts.setup).toContain("if (firstError !== undefined) throw firstError;");
   });
 
   test("sample suite shares containers via beforeAll/afterAll", () => {

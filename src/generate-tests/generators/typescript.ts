@@ -97,10 +97,19 @@ function renderSetup(
   l.push(" */");
   l.push("export async function startTestServices(): Promise<TestServices> {");
   l.push("  const started: { stop(): Promise<unknown> }[] = [];");
+  l.push("  // Stop every container in reverse start order WITHOUT mutating");
+  l.push("  // `started`; attempt all stops even if one fails, then rethrow the");
+  l.push("  // first error so teardown is complete and idempotent.");
   l.push("  const stop = async (): Promise<void> => {");
-  l.push("    for (const c of started.reverse()) {");
-  l.push("      await c.stop();");
+  l.push("    let firstError: unknown;");
+  l.push("    for (let i = started.length - 1; i >= 0; i--) {");
+  l.push("      try {");
+  l.push("        await started[i].stop();");
+  l.push("      } catch (err) {");
+  l.push("        if (firstError === undefined) firstError = err;");
+  l.push("      }");
   l.push("    }");
+  l.push("    if (firstError !== undefined) throw firstError;");
   l.push("  };");
   l.push("  try {");
   for (const svc of ordered) {
