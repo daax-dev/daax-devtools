@@ -72,6 +72,13 @@ describe("JSONC parsing", () => {
     const obj = parseJsonc('{ "url": "http://x/y", "p": "a/*b*/c" }');
     expect(obj).toEqual({ url: "http://x/y", p: "a/*b*/c" });
   });
+
+  test("throws on unterminated string or block comment", () => {
+    expect(() => parseJsonc('{ "a": "unterminated')).toThrow(/Unterminated string/);
+    expect(() => parseJsonc('{ "a": 1 /* unterminated')).toThrow(
+      /Unterminated block comment/,
+    );
+  });
 });
 
 describe("compose parsing", () => {
@@ -389,6 +396,21 @@ describe("CLI behavior", () => {
     expect(out).toContain("DRY RUN");
     expect(out).toContain("func TestMain"); // actual Go content, not just a filename
     expect(out).toContain("startTestServices"); // actual TS content
+  });
+
+  test("rejects a --base-name with path separators (traversal guard)", () => {
+    for (const bad of ["../evil", "a/b", "..", "."]) {
+      const result = run([
+        "--devcontainer",
+        fixture("postgres", "devcontainer.json"),
+        "--base-name",
+        bad,
+        "--dry-run",
+      ]);
+      expect(result.exitCode).toBe(2);
+      expect(result.stderr.join("\n")).toContain("invalid --base-name");
+      expect(result.written).toEqual([]);
+    }
   });
 
   test("rejects an unsupported --target", () => {

@@ -24,6 +24,7 @@
 import { parseArgs } from "node:util";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { resolveServices } from "./devcontainer.js";
 import { generate, type Lang } from "./generate.js";
 
@@ -110,6 +111,21 @@ export function run(argv: string[]): CliResult {
     return { exitCode: 2, stdout, stderr, written };
   }
 
+  // Validate --base-name: it becomes part of output file names, so reject path
+  // separators and dot-segments to prevent traversal outside --out.
+  const baseName = opts["base-name"] as string;
+  if (
+    !/^[A-Za-z0-9._-]+$/.test(baseName) ||
+    baseName === "." ||
+    baseName === ".."
+  ) {
+    stderr.push(
+      `error: invalid --base-name "${baseName}". Use letters, digits, '.', ` +
+        "'_' or '-' only (no path separators).",
+    );
+    return { exitCode: 2, stdout, stderr, written };
+  }
+
   // Resolve devcontainer path.
   const devcontainerPath = opts.devcontainer
     ? resolve(opts.devcontainer)
@@ -152,7 +168,7 @@ export function run(argv: string[]): CliResult {
   const files = generate(resolved.services, {
     lang: lang as Lang,
     goPackage: opts["go-package"] as string,
-    baseName: opts["base-name"] as string,
+    baseName,
   });
 
   const serviceSummary = resolved.services
@@ -203,8 +219,10 @@ export function main(argv = process.argv.slice(2)): void {
 }
 
 // Execute when invoked directly (works under both node and bun).
+// fileURLToPath handles percent-encoding and Windows file:// drive letters,
+// which a raw `new URL(...).pathname` does not.
 const invokedPath = process.argv[1] ? resolve(process.argv[1]) : "";
-const thisPath = resolve(new URL(import.meta.url).pathname);
+const thisPath = resolve(fileURLToPath(import.meta.url));
 if (invokedPath && invokedPath === thisPath) {
   main();
 }

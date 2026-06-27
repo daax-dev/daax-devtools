@@ -95,6 +95,11 @@ export function parseJsonc(text: string): unknown {
     out += ch;
   }
 
+  // Reaching EOF mid-string or mid-comment means malformed input; fail loudly
+  // rather than silently parsing a truncated document.
+  if (inString) throw new Error("Unterminated string literal in JSONC input");
+  if (inBlockComment) throw new Error("Unterminated block comment in JSONC input");
+
   // Remove trailing commas before } or ].
   const noTrailingCommas = out.replace(/,(\s*[}\]])/g, "$1");
   return JSON.parse(noTrailingCommas);
