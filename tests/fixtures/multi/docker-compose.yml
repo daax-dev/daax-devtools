@@ -1,0 +1,38 @@
+services:
+  app:
+    build: .
+    depends_on:
+      - db
+      - cache
+      - search
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: appdb
+    ports:
+      - "5432:5432"
+
+  cache:
+    image: redis:7
+    # depends_on a generated service: forces db to start before cache.
+    depends_on:
+      - db
+    ports:
+      - "6379:6379"
+
+  search:
+    image: elasticsearch:8.13.0
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+    ports:
+      - "9200:9200"
+
+  queue:
+    # No first-class module -> GenericContainer fallback.
+    image: rabbitmq:3
+    ports:
+      - "5672:5672"

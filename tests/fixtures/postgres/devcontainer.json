@@ -1,0 +1,7 @@
+{
+  // Single-service devcontainer: a Postgres-backed app.
+  "name": "postgres-fixture",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+}
