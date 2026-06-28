@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Generator scratch / scratch output
+.tc-*/
+.generated/
+tests/.generated/
+testcontainers/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
