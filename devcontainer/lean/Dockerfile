@@ -100,7 +100,9 @@ RUN mkdir -p "$PNPM_HOME" && pnpm config set global-bin-dir "$PNPM_HOME"
 # Install Claude Code CLI. --allow-build lets pnpm run claude-code's postinstall
 # so the platform-native binary is fetched (pnpm v10+ blocks build scripts by
 # default, otherwise shipping a non-functional `claude` shim).
-RUN pnpm install -g --allow-build=@anthropic-ai/claude-code @anthropic-ai/claude-code \
+# Pinned to the latest tag (2026-07-01) so a rebuild busts this layer and ships
+# the current Claude Code rather than a cache-frozen older build.
+RUN pnpm install -g --allow-build=@anthropic-ai/claude-code @anthropic-ai/claude-code@2.1.197 \
     && timeout 15 claude --version
 
 # Install task management
