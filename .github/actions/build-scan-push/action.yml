@@ -74,7 +74,15 @@ runs:
         cache-from: type=gha,scope=${{ inputs.image }}
         cache-to: type=gha,mode=max,scope=${{ inputs.image }}
 
-    # Gate: fail the job (and skip the push below) if any CRITICAL is found.
+    # Gate: fail the job (and skip the push below) on any CRITICAL that HAS a
+    # fix available. `only-fixed: true` excludes criticals with no upstream fix
+    # so an unfixable-in-our-base-distro CVE can't block publishing forever,
+    # while any critical we could actually remediate still fails the build.
+    # Concretely: Debian bookworm's perl carries CVE-2026-12087 (out-of-bounds
+    # read in Socket.xs) with NO fixed version — the source package is marked
+    # (unfixed) upstream and the vulnerable Socket.so lives in Essential
+    # perl-base, so it can be neither upgraded nor removed. Without only-fixed
+    # the base image (and everything FROM it) can never pass the gate.
     # Docker Scout is what hub.docker.com displays, so this matches the Hub view.
     - name: Scan for critical CVEs (gate)
       uses: docker/scout-action@v1
@@ -82,6 +90,7 @@ runs:
         command: cves
         image: ${{ inputs.image }}:scan
         only-severities: critical
+        only-fixed: true
         exit-code: true
         dockerhub-user: ${{ inputs.dockerhub-username }}
         dockerhub-password: ${{ inputs.dockerhub-token }}
