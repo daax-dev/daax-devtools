@@ -39,19 +39,23 @@ RUN if [ -z "${TARGETARCH}" ]; then echo "ERROR: TARGETARCH is not set. Provide 
         "arm64") GOTAR="go${GO_VERSION}.linux-arm64.tar.gz" ;; \
         *)        echo "Unsupported GOARCH '${GOARCH}'. Supported values: amd64, arm64." >&2; exit 1 ;; \
     esac \
+    && case "${GO_VERSION}-${GOARCH}" in \
+        "1.24.1-amd64") GOSHA="cb2396bae64183cdccf81a9a6df0aea3bce9511fc21469fb89a0c00470088073" ;; \
+        "1.24.1-arm64") GOSHA="8df5750ffc0281017fb6070fba450f5d22b600a02081dceef47966ffaf36a3af" ;; \
+        *) echo "No pinned SHA for go${GO_VERSION}-${GOARCH}; update Dockerfile.code-server." >&2; exit 1 ;; \
+    esac \
     && curl -fsSL "https://go.dev/dl/${GOTAR}" -o "/tmp/${GOTAR}" \
-    && curl -fsSL "https://go.dev/dl/${GOTAR}.sha256" -o "/tmp/${GOTAR}.sha256" \
     && cd /tmp \
-    && sha256sum -c "${GOTAR}.sha256" \
+    && echo "${GOSHA}  ${GOTAR}" | sha256sum -c - \
     && tar -C /usr/local -xzf "/tmp/${GOTAR}" \
-    && rm "/tmp/${GOTAR}" "/tmp/${GOTAR}.sha256" \
+    && rm "/tmp/${GOTAR}" \
     && /usr/local/go/bin/go version
 
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 # ── uv (Python package manager, installed via pip, version-pinned) ───────────
 ARG UV_VERSION=0.4.27
-RUN pip3 install --no-cache-dir "uv==${UV_VERSION}" \
+RUN pip3 install --no-cache-dir --break-system-packages "uv==${UV_VERSION}" \
     && uv --version
 
 # ── Per-user environment ───────────────────────────────────────────────────────

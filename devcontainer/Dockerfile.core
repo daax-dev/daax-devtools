@@ -25,7 +25,7 @@
 # VERSION TRACKING - Update these when upgrading AI CLI tools
 # =============================================================================
 # Last updated: 2026-05-28
-# Claude Code:    @anthropic-ai/claude-code@2.1.153   (pinned; dist-tag latest)
+# Claude Code:    @anthropic-ai/claude-code@2.1.156   (pinned; dist-tag latest)
 # GitHub Copilot: @github/copilot@1.0.54              (pinned; dist-tag latest)
 # OpenAI Codex:   @openai/codex@0.134.0               (pinned; dist-tag latest)
 # Google Gemini:  @google/gemini-cli@0.44.0           (pinned; dist-tag latest)
@@ -93,7 +93,7 @@ ARG CLI_REFRESH=0
 # glibc and its JS fallback requires Node >=24; do not bodge it in this layer.
 RUN echo "CLI refresh token: ${CLI_REFRESH}" \
     && pnpm config set global-bin-dir "${PNPM_HOME}" \
-    && pnpm install -g --allow-build=@anthropic-ai/claude-code @anthropic-ai/claude-code@2.1.153 \
+    && pnpm install -g --allow-build=@anthropic-ai/claude-code @anthropic-ai/claude-code@2.1.156 \
     && ( pnpm install -g @github/copilot@1.0.54 || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" ) \
     && pnpm install -g @openai/codex@0.134.0 \
     && pnpm install -g @google/gemini-cli@0.44.0 \
@@ -135,7 +135,7 @@ LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.base.name="jpoley/daax-agents-base:latest"
 LABEL ai.daax.variant="core"
 LABEL ai.daax.includes="claude-code,copilot,codex,gemini,opencode,kiro,agent-browser,mcp-inspector"
-LABEL ai.daax.versions.claude-code="2.1.153"
+LABEL ai.daax.versions.claude-code="2.1.156"
 LABEL ai.daax.versions.copilot="1.0.54"
 LABEL ai.daax.versions.codex="0.134.0"
 LABEL ai.daax.versions.gemini-cli="0.44.0"
