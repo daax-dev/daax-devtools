@@ -149,9 +149,17 @@ RUN cd "${PNPM_HOME}" && pnpm update semver --latest 2>/dev/null || echo "pnpm s
 # CRITICAL: Must succeed - this is an essential tool
 # --no-cache: avoids persisting flowspec's git checkout (which ships an
 # sbom.spdx that syft would merge into the image SBOM as phantom Go CVEs).
-RUN /home/vscode/.local/bin/uv tool install --no-cache git+https://github.com/jpoley/flowspec.git@v0.4.004 \
+# --build-constraints hatchling<1.27: flowspec's pyproject.toml includes
+# src/flowspec_cli/templates via BOTH `packages` and a redundant
+# `force-include`, mapping .mcp.json to the same wheel path twice. hatchling
+# >=1.27 (pulled by uv's default Python 3.14 build env) rejects the duplicate;
+# 1.26.x tolerates it. Build-time only — hatchling is not shipped in the image.
+# Durable fix is upstream in jpoley/flowspec (drop the force-include block).
+RUN printf 'hatchling<1.27\n' > /tmp/flowspec-build-constraints.txt \
+    && /home/vscode/.local/bin/uv tool install --no-cache --build-constraints /tmp/flowspec-build-constraints.txt git+https://github.com/jpoley/flowspec.git@v0.4.004 \
     && echo "flowspec installed successfully" \
-    && flowspec --version
+    && flowspec --version \
+    && rm -f /tmp/flowspec-build-constraints.txt
 
 # =============================================================================
 # CACHE CLEANUP - Remove all build caches to minimize image size
