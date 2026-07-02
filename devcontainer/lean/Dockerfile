@@ -9,7 +9,7 @@
 # golang/stdlib CVEs shipped in Alpine's apk fzf and the upstream release binary.
 # buildx runs this stage per target platform, so GOARCH matches automatically.
 FROM golang:1.26-alpine AS fzf-builder
-ARG FZF_VERSION=0.73.0
+ARG FZF_VERSION=0.73.1
 ENV CGO_ENABLED=0
 RUN go install "github.com/junegunn/fzf@v${FZF_VERSION}" \
     && /go/bin/fzf --version
@@ -41,9 +41,10 @@ RUN npm install -g npm@latest \
     && npm install -g pnpm
 
 # Install GitHub CLI
-ARG GH_VERSION=2.92.0
-ARG GH_SHA256_AMD64=b57848131bdf0c229cd35e1f2a51aa718199858b2e728410b37e89a428943ec4
-ARG GH_SHA256_ARM64=c2248526dd0160c08d3fccca2332c3c1a07c15a78b23978e77735f1b5a18cfee
+# Version: 2.95.0 (2026-07) - Latest stable (embeds x/crypto 0.53.0, x/net 0.55.0)
+ARG GH_VERSION=2.95.0
+ARG GH_SHA256_AMD64=25d1e4729e8808c9ed3d613e96ebd3f3e44446f2d368c89d878a71a36ddb3d8c
+ARG GH_SHA256_ARM64=d41e0b3b6218e5741c8bb4db39b16e53a59e0e06299a8489bd38f623ef7ebaae
 ARG TARGETARCH
 RUN case "${TARGETARCH}" in \
         "amd64") GH_ARCH="linux_amd64"; GH_SHA256="${GH_SHA256_AMD64}" ;; \
@@ -76,13 +77,13 @@ ENV PNPM_HOME="/home/vscode/.local/share/pnpm"
 ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:/usr/local/bin:${PATH}"
 
 # Install uv (Python package manager) with SHA256 checksum verification
-# Checksums for musl libc tarballs from uv 0.11.16 release assets:
+# Checksums for musl libc tarballs from uv 0.11.26 release assets:
 #   - linux/amd64: uv-x86_64-unknown-linux-musl.tar.gz
 #   - linux/arm64: uv-aarch64-unknown-linux-musl.tar.gz
-# See: https://github.com/astral-sh/uv/releases/download/0.11.16/
-ARG UV_VERSION=0.11.16
-ARG UV_SHA256_AMD64=1bc4be1be0a000f893b0d1db97906cf392b63fa22fda9a0ecf33d0d4bbb4bc9a
-ARG UV_SHA256_ARM64=ac022d96411143b9a2dd75ea711fa8dd4cd14538bf248f2e5df3c10a80f7f6a4
+# See: https://github.com/astral-sh/uv/releases/download/0.11.26/
+ARG UV_VERSION=0.11.26
+ARG UV_SHA256_AMD64=62bf1a53501adf4083224b69b33737450ac516935f5a5e483e9dfaf2665084de
+ARG UV_SHA256_ARM64=47418cfdb34b1ca42e503da72631ac8c475602e2411ac6c39aa84c2373fe6324
 RUN mkdir -p /home/vscode/.local/bin \
     && case "${TARGETARCH}" in \
         "amd64") UV_ARCH="x86_64-unknown-linux-musl"; UV_SHA256="${UV_SHA256_AMD64}" ;; \
@@ -100,7 +101,9 @@ RUN mkdir -p "$PNPM_HOME" && pnpm config set global-bin-dir "$PNPM_HOME"
 # Install Claude Code CLI. --allow-build lets pnpm run claude-code's postinstall
 # so the platform-native binary is fetched (pnpm v10+ blocks build scripts by
 # default, otherwise shipping a non-functional `claude` shim).
-RUN pnpm install -g --allow-build=@anthropic-ai/claude-code @anthropic-ai/claude-code \
+# Pinned to the latest tag (2026-07-01) so a rebuild busts this layer and ships
+# the current Claude Code rather than a cache-frozen older build.
+RUN pnpm install -g --allow-build=@anthropic-ai/claude-code @anthropic-ai/claude-code@2.1.197 \
     && timeout 15 claude --version
 
 # Install task management
@@ -110,8 +113,14 @@ RUN pnpm install -g backlog.md || echo "backlog.md install skipped"
 # flowspec is core to the lean image, so this must succeed (no silent skip).
 # --no-cache: keeps flowspec's checked-out sbom.spdx out of build layers (syft
 # would otherwise merge its entries into the image SBOM as phantom Go CVEs).
-RUN /home/vscode/.local/bin/uv tool install --no-cache git+https://github.com/jpoley/flowspec.git@v0.4.004 \
-    && flowspec --version
+# --build-constraints hatchling<1.27: flowspec's pyproject double-includes
+# templates/.mcp.json (packages + a redundant force-include). hatchling >=1.27
+# (uv's default Python 3.14 build env) rejects the duplicate; 1.26.x tolerates
+# it. Build-time only. Durable fix is upstream in jpoley/flowspec.
+RUN printf 'hatchling<1.27\n' > /tmp/flowspec-build-constraints.txt \
+    && /home/vscode/.local/bin/uv tool install --no-cache --build-constraints /tmp/flowspec-build-constraints.txt git+https://github.com/jpoley/flowspec.git@v0.4.004 \
+    && flowspec --version \
+    && rm -f /tmp/flowspec-build-constraints.txt
 
 # Python tools
 RUN /home/vscode/.local/bin/uv tool install ruff \

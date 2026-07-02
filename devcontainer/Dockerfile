@@ -25,7 +25,7 @@
 # =============================================================================
 # VERSION TRACKING - Update these when upgrading AI CLI tools
 # =============================================================================
-# Last updated: 2026-02-21
+# Last updated: 2026-07-01
 # Flowspec: v0.4.004 (pinned)
 # Backlog.md: backlog.md (latest - needs ignore-scripts=false for postinstall)
 # Claude Code: @anthropic-ai/claude-code (latest)
@@ -107,6 +107,13 @@ RUN set -eu; \
 # those postinstalls run during install and the CLIs are functional. The old
 # `pnpm approve-builds`/`pnpm rebuild -g` pair silently no-opped in non-TTY
 # builds, shipping broken `claude`/`opencode` shims.
+# CACHE-BUST COUPLING: the AI CLIs above are intentionally UNPINNED so a rebuild
+# fetches the current npm `latest`. CI passes no build-args, so the ONLY lever
+# that busts this layer is a text change on this RUN. The pinned
+# `get-shit-done-cc` version below doubles as that lever: bumping it forces the
+# whole layer to re-fetch the latest claude/copilot/codex/gemini/opencode. Do
+# NOT revert the gsd bump as "cosmetic" — that would silently freeze all the
+# CLIs at their last-built versions.
 RUN pnpm config set global-bin-dir "${PNPM_HOME}" \
     && pnpm install -g --allow-build=@anthropic-ai/claude-code @anthropic-ai/claude-code || echo "Note: Claude Code CLI not installed (optional - may require auth)" \
     && pnpm install -g @github/copilot || echo "Note: GitHub Copilot CLI not installed (optional - requires Copilot subscription)" \
@@ -115,7 +122,7 @@ RUN pnpm config set global-bin-dir "${PNPM_HOME}" \
     && pnpm install -g --allow-build=opencode-ai opencode-ai || echo "Note: OpenCode CLI not installed (optional - package may not be published yet)" \
     && pnpm install -g agent-browser || echo "Note: Agent Browser not installed (optional)" \
     && pnpm install -g @modelcontextprotocol/inspector || echo "Note: MCP Inspector not installed (optional)" \
-    && pnpm install -g get-shit-done-cc@1.9.13 || echo "Note: Get Shit Done not installed (optional)"
+    && pnpm install -g get-shit-done-cc@1.42.3 || echo "Note: Get Shit Done not installed (optional)"
 
 # =============================================================================
 # TASK MANAGEMENT & SPEC-DRIVEN DEVELOPMENT
@@ -142,9 +149,17 @@ RUN cd "${PNPM_HOME}" && pnpm update semver --latest 2>/dev/null || echo "pnpm s
 # CRITICAL: Must succeed - this is an essential tool
 # --no-cache: avoids persisting flowspec's git checkout (which ships an
 # sbom.spdx that syft would merge into the image SBOM as phantom Go CVEs).
-RUN /home/vscode/.local/bin/uv tool install --no-cache git+https://github.com/jpoley/flowspec.git@v0.4.004 \
+# --build-constraints hatchling<1.27: flowspec's pyproject.toml includes
+# src/flowspec_cli/templates via BOTH `packages` and a redundant
+# `force-include`, mapping .mcp.json to the same wheel path twice. hatchling
+# >=1.27 (pulled by uv's default Python 3.14 build env) rejects the duplicate;
+# 1.26.x tolerates it. Build-time only — hatchling is not shipped in the image.
+# Durable fix is upstream in jpoley/flowspec (drop the force-include block).
+RUN printf 'hatchling<1.27\n' > /tmp/flowspec-build-constraints.txt \
+    && /home/vscode/.local/bin/uv tool install --no-cache --build-constraints /tmp/flowspec-build-constraints.txt git+https://github.com/jpoley/flowspec.git@v0.4.004 \
     && echo "flowspec installed successfully" \
-    && flowspec --version
+    && flowspec --version \
+    && rm -f /tmp/flowspec-build-constraints.txt
 
 # =============================================================================
 # CACHE CLEANUP - Remove all build caches to minimize image size

@@ -65,9 +65,15 @@ ARG FLOWSPEC_COMMIT_SHA=c36dbeb3ffc871100cd80b7f79c249c7ab2d43c0
 # syft (BuildKit's SBOM generator) parses and merges into the image SBOM as if
 # its entries were installed packages — surfacing phantom Go 1.14.15 CVEs. Not
 # persisting the git checkout to ~/.cache/uv keeps it out of every build layer.
-RUN /home/vscode/.local/bin/uv tool install --no-cache git+https://github.com/jpoley/flowspec.git@${FLOWSPEC_COMMIT_SHA} \
+# --build-constraints hatchling<1.27: flowspec's pyproject double-includes
+# templates/.mcp.json (packages + a redundant force-include). hatchling >=1.27
+# (uv's default Python 3.14 build env) rejects the duplicate; 1.26.x tolerates
+# it. Build-time only. Durable fix is upstream in jpoley/flowspec.
+RUN printf 'hatchling<1.27\n' > /tmp/flowspec-build-constraints.txt \
+    && /home/vscode/.local/bin/uv tool install --no-cache --build-constraints /tmp/flowspec-build-constraints.txt git+https://github.com/jpoley/flowspec.git@${FLOWSPEC_COMMIT_SHA} \
     && echo "flowspec installed successfully (commit: ${FLOWSPEC_COMMIT_SHA}, tag: ${FLOWSPEC_VERSION})" \
-    && flowspec --version
+    && flowspec --version \
+    && rm -f /tmp/flowspec-build-constraints.txt
 
 # =============================================================================
 # CACHE CLEANUP - Remove all build caches to minimize image size
