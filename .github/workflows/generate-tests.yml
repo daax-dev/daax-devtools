@@ -33,7 +33,8 @@ permissions:
 
 jobs:
   generator:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: Default
     steps:
       - uses: actions/checkout@v4
 
