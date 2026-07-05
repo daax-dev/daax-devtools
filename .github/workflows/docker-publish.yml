@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   base:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-scan-push
@@ -45,7 +45,7 @@ jobs:
 
   core:
     needs: base
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-scan-push
@@ -58,7 +58,7 @@ jobs:
 
   agents:
     needs: base
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-scan-push
@@ -71,7 +71,7 @@ jobs:
 
   flowspec:
     needs: core
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-scan-push
@@ -84,7 +84,7 @@ jobs:
 
   gsd:
     needs: core
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-scan-push
@@ -97,7 +97,7 @@ jobs:
 
   openspec:
     needs: core
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-scan-push
@@ -109,7 +109,7 @@ jobs:
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
   lean:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-scan-push
@@ -124,7 +124,7 @@ jobs:
 
   retag-devcontainer:
     needs: agents
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
