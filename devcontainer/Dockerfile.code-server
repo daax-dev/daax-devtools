@@ -3,8 +3,9 @@
 # Extends codercom/code-server with language toolchains so the integrated
 # terminal is actually useful. Languages included:
 #   - Go (version-pinned, sha256-verified download for reproducible builds)
-#   - Python 3 + uv (via pip — no remote installer scripts)
+#   - Python 3 + uv (via isolated venv — no remote installer scripts)
 #   - Rust (via apt — no curl | sh)
+#   - Herdr (version-pinned, sha256-verified binary)
 #   - Common build tools: gcc, make, git, jq
 #
 # Note: Node.js is intentionally omitted — codercom/code-server bundles it.
@@ -30,28 +31,41 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Go (sha256-verified) ───────────────────────────────────────────────────────
-ARG GO_VERSION=1.24.1
+ARG GO_VERSION=1.26.4
+ARG GO_SHA256_AMD64=1153d3d50e0ac764b447adfe05c2bcf08e889d42a02e0fe0259bd47f6733ad7f
+ARG GO_SHA256_ARM64=ef758ae7c6cf9267c9c0ef080b8965f453d89ab2d25d9eb22de4405925238768
 ARG TARGETARCH
 RUN if [ -z "${TARGETARCH}" ]; then echo "ERROR: TARGETARCH is not set. Provide a valid architecture (amd64 or arm64)." >&2; exit 1; fi \
     && GOARCH="${TARGETARCH}" \
     && case "${GOARCH}" in \
-        "amd64") GOTAR="go${GO_VERSION}.linux-amd64.tar.gz" ;; \
-        "arm64") GOTAR="go${GO_VERSION}.linux-arm64.tar.gz" ;; \
+        "amd64") GOTAR="go${GO_VERSION}.linux-amd64.tar.gz"; GO_SHA256="${GO_SHA256_AMD64}" ;; \
+        "arm64") GOTAR="go${GO_VERSION}.linux-arm64.tar.gz"; GO_SHA256="${GO_SHA256_ARM64}" ;; \
         *)        echo "Unsupported GOARCH '${GOARCH}'. Supported values: amd64, arm64." >&2; exit 1 ;; \
     esac \
     && curl -fsSL "https://go.dev/dl/${GOTAR}" -o "/tmp/${GOTAR}" \
-    && curl -fsSL "https://go.dev/dl/${GOTAR}.sha256" -o "/tmp/${GOTAR}.sha256" \
-    && cd /tmp \
-    && sha256sum -c "${GOTAR}.sha256" \
+    && echo "${GO_SHA256}  /tmp/${GOTAR}" | sha256sum -c - \
     && tar -C /usr/local -xzf "/tmp/${GOTAR}" \
-    && rm "/tmp/${GOTAR}" "/tmp/${GOTAR}.sha256" \
+    && rm "/tmp/${GOTAR}" \
     && /usr/local/go/bin/go version
 
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-# ── uv (Python package manager, installed via pip, version-pinned) ───────────
+# ── Herdr (sha256-verified) ───────────────────────────────────────────────────
+ARG HERDR_VERSION=0.7.1
+ARG HERDR_SHA256_AMD64=b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654
+ARG HERDR_SHA256_ARM64=3d757ac30c631e79dc45038c3ecc6423fe13a89f9cffa0f415aedd2c27f1576c
+ENV HERDR_VERSION="${HERDR_VERSION}"
+COPY install-herdr.sh /tmp/install-herdr.sh
+COPY verify-herdr.sh /usr/local/bin/daax-verify-herdr
+RUN chmod +x /tmp/install-herdr.sh /usr/local/bin/daax-verify-herdr \
+    && /tmp/install-herdr.sh \
+    && rm -f /tmp/install-herdr.sh
+
+# ── uv (Python package manager, installed in a venv, version-pinned) ─────────
 ARG UV_VERSION=0.4.27
-RUN pip3 install --no-cache-dir "uv==${UV_VERSION}" \
+RUN python3 -m venv /opt/uv \
+    && /opt/uv/bin/pip install --no-cache-dir "uv==${UV_VERSION}" \
+    && ln -sf /opt/uv/bin/uv /usr/local/bin/uv \
     && uv --version
 
 # ── Per-user environment ───────────────────────────────────────────────────────
@@ -67,6 +81,15 @@ USER root
 RUN /usr/local/go/bin/go version \
     && python3 --version \
     && uv --version \
-    && rustc --version
+    && rustc --version \
+    && herdr --version \
+    && daax-verify-herdr build
+
+LABEL org.opencontainers.image.title="Daax Code Server"
+LABEL org.opencontainers.image.description="Code-server web IDE with language runtimes and Herdr terminal workspace management"
+LABEL org.opencontainers.image.vendor="jpoley"
+LABEL ai.daax.variant="code-server"
+LABEL ai.daax.includes="code-server,herdr,go,python,rust"
+LABEL ai.daax.versions.herdr="0.7.1"
 
 USER coder

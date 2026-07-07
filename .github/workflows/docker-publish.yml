@@ -12,7 +12,7 @@ name: Publish devcontainer images
 #
 # Build order mirrors the FROM chain:
 #   base -> core -> {agents(from base), flowspec/gsd/openspec(from core)}; lean standalone
-#   daax-devcontainer is a retag of the freshly built daax-agents.
+#   code-server is standalone; daax-devcontainer is a retag of daax-agents.
 
 on:
   push:
@@ -53,6 +53,7 @@ jobs:
           image: jpoley/daax-agents-core
           dockerfile: devcontainer/Dockerfile.core
           context: devcontainer
+          verify-command: daax-verify-herdr build
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
@@ -66,6 +67,7 @@ jobs:
           image: jpoley/daax-agents
           dockerfile: devcontainer/Dockerfile
           context: devcontainer
+          verify-command: daax-verify-herdr build
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
@@ -79,6 +81,7 @@ jobs:
           image: jpoley/daax-agents-flowspec
           dockerfile: devcontainer/Dockerfile.flowspec
           context: devcontainer
+          verify-command: daax-verify-herdr build
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
@@ -92,6 +95,7 @@ jobs:
           image: jpoley/daax-agents-gsd
           dockerfile: devcontainer/Dockerfile.gsd
           context: devcontainer
+          verify-command: daax-verify-herdr build
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
@@ -105,6 +109,7 @@ jobs:
           image: jpoley/daax-agents-openspec
           dockerfile: devcontainer/Dockerfile.openspec
           context: devcontainer
+          verify-command: daax-verify-herdr build
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
@@ -116,11 +121,26 @@ jobs:
         with:
           image: jpoley/daax-agents-lean
           dockerfile: devcontainer/lean/Dockerfile
-          context: devcontainer/lean
+          context: devcontainer
+          verify-command: daax-verify-herdr build
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           dhi-username: ${{ secrets.DHI_USERNAME }}
           dhi-token: ${{ secrets.DHI_TOKEN }}
+
+  code-server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-scan-push
+        with:
+          image: jpoley/daax-code-server
+          dockerfile: devcontainer/Dockerfile.code-server
+          context: devcontainer
+          verify-entrypoint: /usr/local/bin/daax-verify-herdr
+          verify-command: build
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
   retag-devcontainer:
     needs: agents

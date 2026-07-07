@@ -190,6 +190,54 @@ install_if_needed "get-shit-done-cc@1.9.13" "get-shit-done-cc" "Get Shit Done (G
 echo "   Done."
 
 # -----------------------------------------------------------------------------
+# 2.1. Herdr Agent Integrations
+# -----------------------------------------------------------------------------
+echo ""
+echo "2.1. Setting up Herdr agent integrations..."
+
+install_herdr_integration() {
+    local agent="$1"
+    local cmd="$2"
+
+    if ! command -v herdr >/dev/null 2>&1; then
+        echo "   Herdr not installed, skipping ${agent} integration"
+        return 0
+    fi
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "   ${agent} command (${cmd}) not installed, skipping integration"
+        return 0
+    fi
+
+    case "$agent" in
+        claude)
+            mkdir -p /home/vscode/.claude/hooks
+            ;;
+        codex)
+            mkdir -p /home/vscode/.codex
+            ;;
+        copilot)
+            mkdir -p /home/vscode/.copilot/hooks
+            ;;
+        opencode)
+            mkdir -p /home/vscode/.config/opencode/plugins
+            ;;
+    esac
+
+    echo "   Installing Herdr ${agent} integration..."
+    herdr integration install "$agent" \
+        || echo "   Warning: Herdr ${agent} integration install failed"
+}
+
+install_herdr_integration "claude" "claude"
+install_herdr_integration "codex" "codex"
+install_herdr_integration "copilot" "copilot"
+install_herdr_integration "opencode" "opencode"
+
+if command -v herdr >/dev/null 2>&1; then
+    herdr integration status || echo "   Warning: Herdr integration status failed"
+fi
+
+# -----------------------------------------------------------------------------
 # 2.5. Claude Logging Wrapper Setup
 # -----------------------------------------------------------------------------
 echo ""
@@ -336,6 +384,7 @@ command -v copilot >/dev/null 2>&1 && echo "  - copilot:     $(copilot --version
 command -v codex >/dev/null 2>&1 && echo "  - codex:       installed" || echo "  - codex:       NOT FOUND"
 command -v gemini >/dev/null 2>&1 && echo "  - gemini:      installed" || echo "  - gemini:      NOT FOUND"
 command -v opencode >/dev/null 2>&1 && echo "  - opencode:    installed" || echo "  - opencode:    NOT FOUND"
+command -v herdr >/dev/null 2>&1 && echo "  - herdr:       $(herdr --version 2>&1 || echo 'installed')" || echo "  - herdr:       NOT FOUND"
 command -v kiro-cli >/dev/null 2>&1 && echo "  - kiro:        $(kiro-cli --version 2>&1 || echo 'installed')" || echo "  - kiro:        NOT FOUND"
 command -v get-shit-done-cc >/dev/null 2>&1 && echo "  - gsd:         installed" || echo "  - gsd:         NOT FOUND"
 command -v backlog >/dev/null 2>&1 && echo "  - backlog:     $(backlog --version 2>&1 || echo 'installed')" || echo "  - backlog:     NOT FOUND"
@@ -357,6 +406,7 @@ echo "  ruff format .           - Format code"
 echo "  backlog task list       - List backlog tasks"
 echo "  flowspec --help         - Flowspec CLI"
 echo "  claude                  - Claude Code CLI"
+echo "  herdr                   - Multi-agent terminal workspace manager"
 echo "  kiro-cli                - Kiro AI CLI (AWS)"
 echo "  /gsd:help               - Get Shit Done (in Claude Code)"
 echo ""

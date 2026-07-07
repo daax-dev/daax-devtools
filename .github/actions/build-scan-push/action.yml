@@ -22,6 +22,14 @@ inputs:
     description: Newline-separated build args
     required: false
     default: ""
+  verify-command:
+    description: Optional command to run inside the built scan image before pushing
+    required: false
+    default: ""
+  verify-entrypoint:
+    description: Optional entrypoint override for the verification run
+    required: false
+    default: ""
   dockerhub-username:
     description: Docker Hub username
     required: true
@@ -73,6 +81,16 @@ runs:
         build-args: ${{ inputs.build-args }}
         cache-from: type=gha,scope=${{ inputs.image }}
         cache-to: type=gha,mode=max,scope=${{ inputs.image }}
+
+    - name: Verify image runtime contract
+      if: ${{ inputs.verify-command != '' }}
+      shell: bash
+      run: |
+        verify_entrypoint=()
+        if [[ -n "${{ inputs.verify-entrypoint }}" ]]; then
+          verify_entrypoint=(--entrypoint "${{ inputs.verify-entrypoint }}")
+        fi
+        docker run --rm "${verify_entrypoint[@]}" ${{ inputs.image }}:scan ${{ inputs.verify-command }}
 
     # Gate: fail the job (and skip the push below) on any CRITICAL that HAS a
     # fix available. `only-fixed: true` excludes criticals with no upstream fix
