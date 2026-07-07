@@ -75,9 +75,10 @@ LABEL org.opencontainers.image.vendor="jpoley"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.base.name="jpoley/daax-agents-core:latest"
 LABEL ai.daax.variant="gsd"
-LABEL ai.daax.includes="core,get-shit-done-cc"
+LABEL ai.daax.includes="core,herdr,get-shit-done-cc"
+LABEL ai.daax.versions.herdr="0.7.1"
 LABEL ai.daax.versions.get-shit-done-cc="1.42.3"
-LABEL ai.daax.versions.pinned-as-of="2026-05-28"
+LABEL ai.daax.versions.pinned-as-of="2026-07-06"
 
 # Verify installations and print versions for debugging
 RUN echo "=== GSD Layer Installation Verification ===" \
@@ -87,8 +88,10 @@ RUN echo "=== GSD Layer Installation Verification ===" \
     && echo "pnpm: $(pnpm --version)" \
     && echo "uv: $(/home/vscode/.local/bin/uv --version)" \
     && echo "claude: $(timeout 5 claude --version 2>&1 || echo 'not installed')" \
+    && echo "herdr: $(timeout 5 herdr --version 2>&1 || echo 'not installed')" \
     && echo "--- GSD Layer Tools ---" \
     && echo "gsd: $(which gsd >/dev/null 2>&1 && echo 'installed' || echo 'not installed')" \
+    && daax-verify-herdr build \
     && echo "PATH: $PATH"
 
 # Default command

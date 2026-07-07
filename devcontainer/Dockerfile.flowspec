@@ -103,7 +103,8 @@ LABEL org.opencontainers.image.vendor="jpoley"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.base.name="jpoley/daax-agents-core:latest"
 LABEL ai.daax.variant="flowspec"
-LABEL ai.daax.includes="core,flowspec,backlog.md"
+LABEL ai.daax.includes="core,herdr,flowspec,backlog.md"
+LABEL ai.daax.versions.herdr="0.7.1"
 
 # Verify installations and print versions for debugging
 RUN echo "=== Flowspec Layer Installation Verification ===" \
@@ -113,9 +114,11 @@ RUN echo "=== Flowspec Layer Installation Verification ===" \
     && echo "pnpm: $(pnpm --version)" \
     && echo "uv: $(/home/vscode/.local/bin/uv --version)" \
     && echo "claude: $(timeout 5 claude --version 2>&1 || echo 'not installed')" \
+    && echo "herdr: $(timeout 5 herdr --version 2>&1 || echo 'not installed')" \
     && echo "--- Flowspec Layer Tools ---" \
     && echo "flowspec: $(flowspec --version 2>&1 || echo 'not installed')" \
     && echo "backlog: $(timeout 5 backlog --version 2>&1 || echo 'not installed')" \
+    && daax-verify-herdr build \
     && echo "PATH: $PATH"
 
 # Default command

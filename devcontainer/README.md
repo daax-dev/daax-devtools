@@ -106,12 +106,13 @@ The devcontainer directory contains multiple Dockerfile variants for different u
 | Dockerfile | Image Name | Base | Key Features | When to Use |
 |------------|------------|------|--------------|-------------|
 | `Dockerfile.base` | `daax-agents-base` | `node:22-bookworm-slim` | Python 3.x, Node.js 22, pnpm, uv, gh CLI, oh-my-posh, tmux, neovim, btop, fzf, asciinema, ruff, pytest | Never directly - this is the foundation layer |
-| `Dockerfile.core` | `daax-agents-core` | `daax-agents-base` | All AI CLIs (Claude, Copilot, Codex, Gemini, OpenCode, Kiro), Agent Browser, MCP Inspector | When you only need AI coding assistants without task frameworks |
-| `Dockerfile` | `daax-agents` | `daax-agents-base` | AI CLIs + Flowspec + Backlog.md + OpenSpec + GSD (all-in-one) | Full-featured default image with all tools |
-| `Dockerfile.flowspec` | `daax-agents-flowspec` | `daax-agents-core` | Core + Flowspec CLI + Backlog.md | Specification-driven development with task management |
-| `Dockerfile.gsd` | `daax-agents-gsd` | `daax-agents-core` | Core + get-shit-done-cc | Task execution framework for Claude Code |
-| `Dockerfile.openspec` | `daax-agents-openspec` | `daax-agents-core` | Core + @fission-ai/openspec | Fission AI's specification framework |
-| `lean/Dockerfile` | `daax-lean` | `dhi.io/python:3.13-alpine3.22-dev` | Claude Code + Flowspec + Backlog.md + ruff/pytest (no Go tools) | Minimal image with reduced CVE surface (~1GB smaller) |
+| `Dockerfile.core` | `daax-agents-core` | `daax-agents-base` | All AI CLIs (Claude, Copilot, Codex, Gemini, OpenCode, Kiro), Herdr, Agent Browser, MCP Inspector | When you only need AI coding assistants without task frameworks |
+| `Dockerfile` | `daax-agents` | `daax-agents-base` | AI CLIs + Herdr + Flowspec + Backlog.md + OpenSpec + GSD (all-in-one) | Full-featured default image with all tools |
+| `Dockerfile.flowspec` | `daax-agents-flowspec` | `daax-agents-core` | Core + Herdr + Flowspec CLI + Backlog.md | Specification-driven development with task management |
+| `Dockerfile.gsd` | `daax-agents-gsd` | `daax-agents-core` | Core + Herdr + get-shit-done-cc | Task execution framework for Claude Code |
+| `Dockerfile.openspec` | `daax-agents-openspec` | `daax-agents-core` | Core + Herdr + @fission-ai/openspec | Fission AI's specification framework |
+| `lean/Dockerfile` | `daax-agents-lean` | `dhi.io/python:3.14-alpine3.22-dev` | Claude Code + Herdr + Flowspec + Backlog.md + ruff/pytest (no Go tools) | Minimal image with reduced CVE surface (~1GB smaller) |
+| `Dockerfile.code-server` | `daax-code-server` | `codercom/code-server` | Browser IDE + Herdr + Go/Python/Rust runtimes | Browser-based terminal workflows |
 
 ### Image Hierarchy
 
@@ -159,7 +160,47 @@ dhi.io/python:3.13-alpine3.22-dev (Alpine-based, separate tree)
 | [OpenAI Codex](https://platform.openai.com/docs/overview) | `codex` | OAuth or API Key | ChatGPT Plus/Pro/Team or OpenAI API |
 | Google Gemini | `gemini` | API Key | Google AI API |
 | [OpenCode](https://github.com/opencode-ai/opencode) | `opencode` | API Key | OpenAI/Anthropic API |
+| [Herdr](https://github.com/ogulcancelik/herdr) | `herdr` | None for local session manager | No |
 | [Get Shit Done](https://github.com/glittercowboy/get-shit-done) | `gsd:*` | None (uses Claude Code) | Claude Code required |
+
+### Herdr Multi-Agent Sessions
+
+Herdr is installed in every AI coding image and in the code-server web image.
+It is pinned to `0.7.1` and installed from the official Linux release assets
+with SHA256 verification. Herdr is licensed AGPL-3.0-or-later with a commercial
+license option, so distribution changes should keep that compliance note with
+release artifacts.
+
+Use it from either a normal shell or a browser terminal attached to the same
+container:
+
+```bash
+# Start or attach to a persistent named session.
+herdr --session daax
+
+# Check built-in agent integrations.
+herdr integration status
+
+# Run the automated same-container smoke test.
+daax-verify-herdr runtime
+```
+
+The post-create scripts install Herdr integrations for available supported
+agents without overwriting auth tokens:
+
+```bash
+herdr integration install claude
+herdr integration install codex
+herdr integration install copilot
+herdr integration install opencode
+```
+
+For web usage, open the devcontainer in VS Code Web or the code-server image,
+open the integrated terminal, and run `herdr --session web-smoke`. A second
+terminal in the same container can inspect the same server with
+`herdr session list --json`, `herdr agent list`, and `herdr pane list`.
+Detach and reconnect through the browser, then run
+`herdr session attach web-smoke` to resume the session.
 
 ### Task Management
 
@@ -239,6 +280,8 @@ claude --help              # Claude Code CLI
 copilot --help             # GitHub Copilot
 kiro-cli --help            # Kiro CLI (AWS)
 opencode --help            # OpenCode CLI
+herdr --help               # Herdr multi-agent terminal workspaces
+daax-verify-herdr runtime  # Same-container Herdr runtime smoke test
 /gsd:help                  # Get Shit Done (in Claude Code)
 
 # Debugging Tools
@@ -397,6 +440,7 @@ npm install -g @devcontainers/cli
 ```bash
 # Pull the image ahead of time so startup doesn't wait for download
 docker pull jpoley/daax-agents:latest
+docker pull jpoley/daax-code-server:latest
 ```
 
 ### Startup Time Comparison
@@ -421,6 +465,7 @@ To rebuild the image locally:
 2. **Build the tools image**:
    ```bash
    docker build --build-arg BASE_IMAGE=jpoley/daax-agents-base:local -t jpoley/daax-agents:local .
+   docker run --rm jpoley/daax-agents:local daax-verify-herdr runtime
    ```
 
 3. **Test with local build** (temporary):

@@ -74,7 +74,8 @@ LABEL org.opencontainers.image.vendor="jpoley"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.base.name="jpoley/daax-agents-core:latest"
 LABEL ai.daax.variant="openspec"
-LABEL ai.daax.includes="core,@fission-ai/openspec"
+LABEL ai.daax.includes="core,herdr,@fission-ai/openspec"
+LABEL ai.daax.versions.herdr="0.7.1"
 
 # Verify installations and print versions for debugging
 RUN echo "=== OpenSpec Layer Installation Verification ===" \
@@ -84,8 +85,10 @@ RUN echo "=== OpenSpec Layer Installation Verification ===" \
     && echo "pnpm: $(pnpm --version)" \
     && echo "uv: $(/home/vscode/.local/bin/uv --version)" \
     && echo "claude: $(timeout 5 claude --version 2>&1 || echo 'not installed')" \
+    && echo "herdr: $(timeout 5 herdr --version 2>&1 || echo 'not installed')" \
     && echo "--- OpenSpec Layer Tools ---" \
     && echo "openspec: $(timeout 5 openspec --version 2>&1 || echo 'not installed')" \
+    && daax-verify-herdr build \
     && echo "PATH: $PATH"
 
 # Default command
