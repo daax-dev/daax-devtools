@@ -168,5 +168,7 @@ LABEL org.opencontainers.image.description="Minimal devcontainer: Claude Code + 
 LABEL ai.daax.variant="lean"
 LABEL ai.daax.includes="claude-code,herdr,flowspec,backlog.md"
 LABEL ai.daax.versions.herdr="0.7.1"
+LABEL ai.daax.licenses.herdr="AGPL-3.0-or-later"
+LABEL ai.daax.source.herdr="https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.7.1.tar.gz"
 
 CMD ["zsh"]

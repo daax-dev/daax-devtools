@@ -209,6 +209,8 @@ LABEL org.opencontainers.image.base.name="jpoley/daax-agents-base:latest"
 LABEL ai.daax.variant="agents"
 LABEL ai.daax.includes="claude-code,copilot,codex,gemini,opencode,herdr,kiro,agent-browser,mcp-inspector,get-shit-done-cc,backlog.md,openspec,flowspec"
 LABEL ai.daax.versions.herdr="0.7.1"
+LABEL ai.daax.licenses.herdr="AGPL-3.0-or-later"
+LABEL ai.daax.source.herdr="https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.7.1.tar.gz"
 
 # Verify installations and print versions for debugging
 # Note: Some CLIs may hang on --version, so we use timeout for safety:

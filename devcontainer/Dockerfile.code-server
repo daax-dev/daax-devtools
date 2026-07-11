@@ -91,5 +91,7 @@ LABEL org.opencontainers.image.vendor="jpoley"
 LABEL ai.daax.variant="code-server"
 LABEL ai.daax.includes="code-server,herdr,go,python,rust"
 LABEL ai.daax.versions.herdr="0.7.1"
+LABEL ai.daax.licenses.herdr="AGPL-3.0-or-later"
+LABEL ai.daax.source.herdr="https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.7.1.tar.gz"
 
 USER coder

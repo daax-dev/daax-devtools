@@ -251,8 +251,9 @@ echo "2.5. Setting up Claude logging wrapper..."
 
 # Install node-pty for wrap.mjs (pinned version from package.json)
 # Skip if node_modules already exists and has node-pty
-cd /workspaces/daax
-if [ -d "node_modules/node-pty" ]; then
+if ! cd /workspaces/daax; then
+    echo "   Warning: /workspaces/daax not found; skipping node-pty dependency install for Claude logging wrapper"
+elif [ -d "node_modules/node-pty" ]; then
     echo "   node-pty already installed, skipping"
 else
     echo "   Installing node-pty dependency..."

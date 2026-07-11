@@ -77,6 +77,8 @@ LABEL org.opencontainers.image.base.name="jpoley/daax-agents-core:latest"
 LABEL ai.daax.variant="gsd"
 LABEL ai.daax.includes="core,herdr,get-shit-done-cc"
 LABEL ai.daax.versions.herdr="0.7.1"
+LABEL ai.daax.licenses.herdr="AGPL-3.0-or-later"
+LABEL ai.daax.source.herdr="https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.7.1.tar.gz"
 LABEL ai.daax.versions.get-shit-done-cc="1.42.3"
 LABEL ai.daax.versions.pinned-as-of="2026-07-06"
 
