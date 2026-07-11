@@ -29,6 +29,57 @@ cleanup_verify_tmp() {
 
 trap cleanup_verify_tmp EXIT
 
+RUNTIME_SMOKE_TMP=""
+RUNTIME_SMOKE_SERVER_PID=""
+RUNTIME_SMOKE_CLEANED=0
+
+cleanup_runtime_smoke() {
+  if [[ "$RUNTIME_SMOKE_CLEANED" == "1" ]]; then
+    return 0
+  fi
+  RUNTIME_SMOKE_CLEANED=1
+
+  if [[ -n "$RUNTIME_SMOKE_SERVER_PID" ]]; then
+    herdr server stop >/dev/null 2>&1 || true
+
+    local i
+    for i in $(seq 1 20); do
+      if ! kill -0 "$RUNTIME_SMOKE_SERVER_PID" >/dev/null 2>&1; then
+        wait "$RUNTIME_SMOKE_SERVER_PID" >/dev/null 2>&1 || true
+        break
+      fi
+      sleep 0.1
+    done
+
+    if kill -0 "$RUNTIME_SMOKE_SERVER_PID" >/dev/null 2>&1; then
+      kill "$RUNTIME_SMOKE_SERVER_PID" >/dev/null 2>&1 || true
+      for i in $(seq 1 10); do
+        if ! kill -0 "$RUNTIME_SMOKE_SERVER_PID" >/dev/null 2>&1; then
+          break
+        fi
+        sleep 0.1
+      done
+    fi
+
+    if kill -0 "$RUNTIME_SMOKE_SERVER_PID" >/dev/null 2>&1; then
+      kill -KILL "$RUNTIME_SMOKE_SERVER_PID" >/dev/null 2>&1 || true
+    fi
+    wait "$RUNTIME_SMOKE_SERVER_PID" >/dev/null 2>&1 || true
+    RUNTIME_SMOKE_SERVER_PID=""
+  fi
+
+  if [[ -n "$RUNTIME_SMOKE_TMP" && "${KEEP_HERDR_SMOKE_LOGS:-}" == "1" ]]; then
+    log "kept smoke logs in $RUNTIME_SMOKE_TMP"
+  fi
+}
+
+cleanup_runtime_and_tmp() {
+  local status=$?
+  cleanup_runtime_smoke
+  cleanup_verify_tmp
+  return "$status"
+}
+
 require_herdr() {
   command -v herdr >/dev/null 2>&1 || fail "herdr is not on PATH"
 
@@ -85,7 +136,7 @@ read_agent_until() {
   local out_file="$3"
   local i
 
-  for i in $(seq 1 50); do
+  for ((i = 1; i <= 50; i++)); do
     herdr agent read "$agent" --source recent --lines 50 >"$out_file" || true
     if grep -q "$token" "$out_file"; then
       return 0
@@ -100,21 +151,18 @@ read_agent_until() {
 runtime_smoke() {
   local tmp server_pid
   tmp="$VERIFY_TMP/smoke"
+  RUNTIME_SMOKE_TMP="$tmp"
   export HOME="$tmp/home"
   export XDG_CONFIG_HOME="$HOME/.config"
   mkdir -p "$tmp" "$HOME" "$XDG_CONFIG_HOME"
 
   herdr server >"$tmp/server.log" 2>&1 &
   server_pid="$!"
+  RUNTIME_SMOKE_SERVER_PID="$server_pid"
 
-  cleanup() {
-    herdr server stop >/dev/null 2>&1 || true
-    wait "$server_pid" >/dev/null 2>&1 || true
-    if [[ "${KEEP_HERDR_SMOKE_LOGS:-}" == "1" ]]; then
-      log "kept smoke logs in $tmp"
-    fi
-  }
-  trap 'cleanup; cleanup_verify_tmp' EXIT INT TERM
+  trap cleanup_runtime_and_tmp EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
 
   wait_for_server "$tmp" || {
     sed -n '1,160p' "$tmp/server.log" >&2 || true
@@ -126,9 +174,11 @@ runtime_smoke() {
   herdr workspace create --cwd "$tmp" --label daax-herdr-smoke --no-focus \
     >"$tmp/herdr-workspace-create.txt"
 
+  # shellcheck disable=SC2016
   herdr agent start codex-smoke --cwd "$tmp" --no-focus -- \
     /bin/sh -lc 'i=0; while [ "$i" -lt 40 ]; do echo C_OK; i=$((i + 1)); sleep 0.25; done; sleep 20' \
     >"$tmp/herdr-agent-start-codex.txt"
+  # shellcheck disable=SC2016
   herdr agent start claude-smoke --cwd "$tmp" --split right --no-focus -- \
     /bin/sh -lc 'i=0; while [ "$i" -lt 40 ]; do echo D_OK; i=$((i + 1)); sleep 0.25; done; sleep 20' \
     >"$tmp/herdr-agent-start-claude.txt"
@@ -144,7 +194,9 @@ runtime_smoke() {
 
   herdr server stop >"$tmp/herdr-server-stop.txt"
   wait "$server_pid" >/dev/null 2>&1 || true
+  RUNTIME_SMOKE_SERVER_PID=""
   trap cleanup_verify_tmp EXIT
+  trap - INT TERM
 }
 
 require_herdr

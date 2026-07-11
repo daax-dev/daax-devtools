@@ -50,17 +50,6 @@ RUN if [ -z "${TARGETARCH}" ]; then echo "ERROR: TARGETARCH is not set. Provide 
 
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-# ── Herdr (sha256-verified) ───────────────────────────────────────────────────
-ARG HERDR_VERSION=0.7.1
-ARG HERDR_SHA256_AMD64=b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654
-ARG HERDR_SHA256_ARM64=3d757ac30c631e79dc45038c3ecc6423fe13a89f9cffa0f415aedd2c27f1576c
-ENV HERDR_VERSION="${HERDR_VERSION}"
-COPY install-herdr.sh /tmp/install-herdr.sh
-COPY verify-herdr.sh /usr/local/bin/daax-verify-herdr
-RUN chmod +x /tmp/install-herdr.sh /usr/local/bin/daax-verify-herdr \
-    && /tmp/install-herdr.sh \
-    && rm -f /tmp/install-herdr.sh
-
 # ── uv (Python package manager, installed in a venv, version-pinned) ─────────
 ARG UV_VERSION=0.4.27
 RUN python3 -m venv /opt/uv \
@@ -78,6 +67,17 @@ RUN printf '\nexport GOPATH="$HOME/go"\nexport GOBIN="$HOME/go/bin"\nexport PATH
 
 # ── Verify ─────────────────────────────────────────────────────────────────────
 USER root
+# ── Herdr (sha256-verified) ───────────────────────────────────────────────────
+ARG HERDR_VERSION=0.7.1
+ARG HERDR_SHA256_AMD64=b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654
+ARG HERDR_SHA256_ARM64=3d757ac30c631e79dc45038c3ecc6423fe13a89f9cffa0f415aedd2c27f1576c
+ENV HERDR_VERSION="${HERDR_VERSION}"
+COPY install-herdr.sh /tmp/install-herdr.sh
+COPY verify-herdr.sh /usr/local/bin/daax-verify-herdr
+RUN chmod +x /tmp/install-herdr.sh /usr/local/bin/daax-verify-herdr \
+    && /tmp/install-herdr.sh \
+    && rm -f /tmp/install-herdr.sh
+
 RUN /usr/local/go/bin/go version \
     && python3 --version \
     && uv --version \

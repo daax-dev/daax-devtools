@@ -52,23 +52,6 @@ ENV PATH="/home/vscode/.local/bin:${PNPM_HOME}:${GOPATH}/bin:/usr/local/bin:${PA
 COPY --chown=vscode:vscode daax.omp.json /home/vscode/.config/daax.omp.json
 
 # =============================================================================
-# HERDR - Terminal workspace manager for AI coding agents
-# =============================================================================
-ARG TARGETARCH
-ARG HERDR_VERSION=0.7.1
-ARG HERDR_SHA256_AMD64=b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654
-ARG HERDR_SHA256_ARM64=3d757ac30c631e79dc45038c3ecc6423fe13a89f9cffa0f415aedd2c27f1576c
-ENV HERDR_VERSION="${HERDR_VERSION}"
-COPY install-herdr.sh /tmp/install-herdr.sh
-COPY verify-herdr.sh /usr/local/bin/daax-verify-herdr
-USER root
-RUN chmod +x /tmp/install-herdr.sh /usr/local/bin/daax-verify-herdr \
-    && /tmp/install-herdr.sh \
-    && rm -f /tmp/install-herdr.sh
-USER vscode
-RUN daax-verify-herdr build
-
-# =============================================================================
 # KIRO CLI (from AWS) - Uses dedicated installer
 # =============================================================================
 # Kiro CLI is installed via curl-based installer (not npm)
@@ -198,6 +181,23 @@ RUN echo "=== Cleaning build caches ===" \
     && rm -f /home/vscode/.zsh_history 2>/dev/null || true \
     && rm -f /home/vscode/.bash_history 2>/dev/null || true \
     && echo "Cache cleanup complete"
+
+# =============================================================================
+# HERDR - Terminal workspace manager for AI coding agents
+# =============================================================================
+ARG TARGETARCH
+ARG HERDR_VERSION=0.7.1
+ARG HERDR_SHA256_AMD64=b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654
+ARG HERDR_SHA256_ARM64=3d757ac30c631e79dc45038c3ecc6423fe13a89f9cffa0f415aedd2c27f1576c
+ENV HERDR_VERSION="${HERDR_VERSION}"
+COPY install-herdr.sh /tmp/install-herdr.sh
+COPY verify-herdr.sh /usr/local/bin/daax-verify-herdr
+USER root
+RUN chmod +x /tmp/install-herdr.sh /usr/local/bin/daax-verify-herdr \
+    && /tmp/install-herdr.sh \
+    && rm -f /tmp/install-herdr.sh
+USER vscode
+RUN daax-verify-herdr build
 
 # Labels for Docker Hub
 LABEL org.opencontainers.image.title="Daax Agents"

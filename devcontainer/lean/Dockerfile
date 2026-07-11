@@ -64,18 +64,6 @@ RUN case "${TARGETARCH}" in \
 COPY --from=fzf-builder /go/bin/fzf /usr/local/bin/fzf
 RUN chmod +x /usr/local/bin/fzf && fzf --version
 
-# Install Herdr from the official static Linux release binary. The same binary
-# runs on Alpine/musl because upstream ships it as static PIE.
-ARG HERDR_VERSION=0.7.1
-ARG HERDR_SHA256_AMD64=b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654
-ARG HERDR_SHA256_ARM64=3d757ac30c631e79dc45038c3ecc6423fe13a89f9cffa0f415aedd2c27f1576c
-ENV HERDR_VERSION="${HERDR_VERSION}"
-COPY install-herdr.sh /tmp/install-herdr.sh
-COPY verify-herdr.sh /usr/local/bin/daax-verify-herdr
-RUN chmod +x /tmp/install-herdr.sh /usr/local/bin/daax-verify-herdr \
-    && /tmp/install-herdr.sh \
-    && rm -f /tmp/install-herdr.sh
-
 # Create vscode user
 RUN addgroup -g 1000 vscode \
     && adduser -u 1000 -G vscode -h /home/vscode -s /bin/zsh -D vscode \
@@ -148,6 +136,20 @@ RUN /home/vscode/.local/bin/uv cache clean \
     && pnpm store prune 2>/dev/null || true \
     && npm cache clean --force 2>/dev/null || true \
     && rm -rf /tmp/* 2>/dev/null || true
+
+# Install Herdr from the official static Linux release binary. The same binary
+# runs on Alpine/musl because upstream ships it as static PIE.
+USER root
+ARG HERDR_VERSION=0.7.1
+ARG HERDR_SHA256_AMD64=b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654
+ARG HERDR_SHA256_ARM64=3d757ac30c631e79dc45038c3ecc6423fe13a89f9cffa0f415aedd2c27f1576c
+ENV HERDR_VERSION="${HERDR_VERSION}"
+COPY install-herdr.sh /tmp/install-herdr.sh
+COPY verify-herdr.sh /usr/local/bin/daax-verify-herdr
+RUN chmod +x /tmp/install-herdr.sh /usr/local/bin/daax-verify-herdr \
+    && /tmp/install-herdr.sh \
+    && rm -f /tmp/install-herdr.sh
+USER vscode
 
 # Verify
 RUN echo "=== Lean Image Verification ===" \
