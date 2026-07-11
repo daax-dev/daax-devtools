@@ -44,7 +44,8 @@ fi
 # Herdr integration
 echo "3. Setting up Herdr integration..."
 if command -v herdr >/dev/null 2>&1 && command -v claude >/dev/null 2>&1; then
-    mkdir -p /home/vscode/.claude/hooks
+    CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-${HOME:-/home/vscode}/.claude}"
+    mkdir -p "$CLAUDE_DIR/hooks"
     herdr integration install claude || echo "   Warning: Herdr Claude integration failed"
     herdr integration status || echo "   Warning: Herdr integration status failed"
 else

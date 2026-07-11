@@ -22,7 +22,7 @@ case "$arch" in
     ;;
 esac
 
-tmp="${TMPDIR:-/tmp}/${asset}.$$"
+tmp="$(mktemp "${TMPDIR:-/tmp}/herdr.XXXXXX")"
 url="https://github.com/ogulcancelik/herdr/releases/download/v${HERDR_VERSION#v}/${asset}"
 
 cleanup() {

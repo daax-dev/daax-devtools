@@ -85,12 +85,23 @@ runs:
     - name: Verify image runtime contract
       if: ${{ inputs.verify-command != '' }}
       shell: bash
+      env:
+        VERIFY_COMMAND: ${{ inputs.verify-command }}
+        VERIFY_ENTRYPOINT: ${{ inputs.verify-entrypoint }}
+        VERIFY_IMAGE: ${{ inputs.image }}:scan
       run: |
         verify_entrypoint=()
-        if [[ -n "${{ inputs.verify-entrypoint }}" ]]; then
-          verify_entrypoint=(--entrypoint "${{ inputs.verify-entrypoint }}")
+        if [[ -n "$VERIFY_ENTRYPOINT" ]]; then
+          verify_entrypoint=(--entrypoint "$VERIFY_ENTRYPOINT")
         fi
-        docker run --rm "${verify_entrypoint[@]}" ${{ inputs.image }}:scan ${{ inputs.verify-command }}
+
+        read -r -a verify_command <<< "$VERIFY_COMMAND"
+        if [[ "${#verify_command[@]}" -eq 0 ]]; then
+          echo "verify-command input was empty" >&2
+          exit 1
+        fi
+
+        docker run --rm "${verify_entrypoint[@]}" "$VERIFY_IMAGE" "${verify_command[@]}"
 
     # Gate: fail the job (and skip the push below) on any CRITICAL that HAS a
     # fix available. `only-fixed: true` excludes criticals with no upstream fix

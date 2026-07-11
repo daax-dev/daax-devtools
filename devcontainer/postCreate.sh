@@ -198,6 +198,8 @@ echo "2.1. Setting up Herdr agent integrations..."
 install_herdr_integration() {
     local agent="$1"
     local cmd="$2"
+    local home_dir="${HOME:-/home/vscode}"
+    local config_dir
 
     if ! command -v herdr >/dev/null 2>&1; then
         echo "   Herdr not installed, skipping ${agent} integration"
@@ -210,16 +212,20 @@ install_herdr_integration() {
 
     case "$agent" in
         claude)
-            mkdir -p /home/vscode/.claude/hooks
+            config_dir="${CLAUDE_CONFIG_DIR:-$home_dir/.claude}"
+            mkdir -p "$config_dir/hooks"
             ;;
         codex)
-            mkdir -p /home/vscode/.codex
+            config_dir="${CODEX_HOME:-$home_dir/.codex}"
+            mkdir -p "$config_dir"
             ;;
         copilot)
-            mkdir -p /home/vscode/.copilot/hooks
+            config_dir="${COPILOT_HOME:-$home_dir/.copilot}"
+            mkdir -p "$config_dir/hooks"
             ;;
         opencode)
-            mkdir -p /home/vscode/.config/opencode/plugins
+            config_dir="${XDG_CONFIG_HOME:-$home_dir/.config}/opencode"
+            mkdir -p "$config_dir/plugins"
             ;;
     esac
 
