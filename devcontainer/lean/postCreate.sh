@@ -41,8 +41,19 @@ if ! command -v claude &>/dev/null; then
     pnpm install -g @anthropic-ai/claude-code || echo "   Claude Code requires auth"
 fi
 
+# Herdr integration
+echo "3. Setting up Herdr integration..."
+if command -v herdr >/dev/null 2>&1 && command -v claude >/dev/null 2>&1; then
+    CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-${HOME:-/home/vscode}/.claude}"
+    mkdir -p "$CLAUDE_DIR/hooks"
+    herdr integration install claude || echo "   Warning: Herdr Claude integration failed"
+    herdr integration status || echo "   Warning: Herdr integration status failed"
+else
+    echo "   Herdr or Claude not installed, skipping integration"
+fi
+
 # MCP config
-echo "3. Setting up MCP configuration..."
+echo "4. Setting up MCP configuration..."
 mkdir -p /home/vscode/.config/claude
 cat > /home/vscode/.config/claude/claude_desktop_config.json << EOF
 {
@@ -65,6 +76,7 @@ echo "uv:       $(uv --version 2>&1)"
 echo "Node:     $(node --version 2>&1)"
 echo "flowspec: $(flowspec --version 2>&1 || echo 'installed')"
 echo "claude:   $(claude --version 2>&1 || echo 'installed')"
+echo "herdr:    $(herdr --version 2>&1 || echo 'installed')"
 echo "backlog:  $(backlog --version 2>&1 || echo 'installed')"
 echo ""
 echo "Daax Lean Ready!"

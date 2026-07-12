@@ -84,8 +84,23 @@ The `devcontainer/` directory contains VS Code devcontainer configurations and m
 
 ### Dockerfile Hierarchy
 - `Dockerfile.base` - Foundation layer with Python, Node, dev tools
-- `Dockerfile.core` - Base + AI CLIs (Claude, Copilot, Codex, etc.)
-- `Dockerfile` - Full-featured default image with all tools
+- `Dockerfile.core` - Base + AI CLIs (Claude, Copilot, Codex, etc.) + Herdr
+- `Dockerfile` - Full-featured default image with all tools + Herdr
 - `Dockerfile.flowspec`, `Dockerfile.gsd`, `Dockerfile.openspec` - Specialized variants
+
+### Herdr Multi-Agent Sessions
+
+All AI coding devcontainer images include Herdr for terminal-native multi-agent
+workspaces. From the CLI or a browser terminal attached to the same container:
+
+```bash
+herdr --session daax
+herdr integration status
+daax-verify-herdr runtime
+```
+
+Use `jpoley/daax-agents:latest` for the full agent image, or
+`jpoley/daax-code-server:latest` when you need a browser IDE image with Herdr
+available in the integrated terminal.
 
 See [devcontainer/README.md](devcontainer/README.md) for complete documentation on image variants, authentication, and build commands.

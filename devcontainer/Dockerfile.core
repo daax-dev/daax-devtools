@@ -30,6 +30,7 @@
 # OpenAI Codex:   @openai/codex@0.142.5               (pinned; dist-tag latest)
 # Google Gemini:  @google/gemini-cli@0.49.0           (pinned; dist-tag latest)
 # OpenCode:       opencode-ai                         (unpinned — out of scope of 2026-05 pin pass)
+# Herdr:          0.7.1                               (pinned; checksum verified)
 # Kiro CLI:       @anthropic-ai/kiro                  (UNAVAILABLE — npm 404; install falls back gracefully)
 # Agent Browser:  agent-browser                       (unpinned — out of scope)
 # MCP Inspector:  @modelcontextprotocol/inspector     (unpinned — out of scope)
@@ -126,6 +127,23 @@ RUN echo "=== Cleaning build caches ===" \
     && rm -f /home/vscode/.bash_history 2>/dev/null || true \
     && echo "Cache cleanup complete"
 
+# =============================================================================
+# HERDR - Terminal workspace manager for AI coding agents
+# =============================================================================
+ARG TARGETARCH
+ARG HERDR_VERSION=0.7.1
+ARG HERDR_SHA256_AMD64=b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654
+ARG HERDR_SHA256_ARM64=3d757ac30c631e79dc45038c3ecc6423fe13a89f9cffa0f415aedd2c27f1576c
+ENV HERDR_VERSION="${HERDR_VERSION}"
+COPY install-herdr.sh /tmp/install-herdr.sh
+COPY verify-herdr.sh /usr/local/bin/daax-verify-herdr
+USER root
+RUN chmod +x /tmp/install-herdr.sh /usr/local/bin/daax-verify-herdr \
+    && /tmp/install-herdr.sh \
+    && rm -f /tmp/install-herdr.sh
+USER vscode
+RUN daax-verify-herdr build
+
 # Labels for Docker Hub
 LABEL org.opencontainers.image.title="Daax Agents Core"
 LABEL org.opencontainers.image.description="Core development container with AI coding assistants (Claude Code, Codex, Gemini, GitHub Copilot, OpenCode, Kiro)"
@@ -134,12 +152,15 @@ LABEL org.opencontainers.image.vendor="jpoley"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.base.name="jpoley/daax-agents-base:latest"
 LABEL ai.daax.variant="core"
-LABEL ai.daax.includes="claude-code,copilot,codex,gemini,opencode,kiro,agent-browser,mcp-inspector"
+LABEL ai.daax.includes="claude-code,copilot,codex,gemini,opencode,herdr,kiro,agent-browser,mcp-inspector"
 LABEL ai.daax.versions.claude-code="2.1.197"
 LABEL ai.daax.versions.copilot="1.0.67"
 LABEL ai.daax.versions.codex="0.142.5"
 LABEL ai.daax.versions.gemini-cli="0.49.0"
-LABEL ai.daax.versions.pinned-as-of="2026-07-01"
+LABEL ai.daax.versions.herdr="0.7.1"
+LABEL ai.daax.licenses.herdr="AGPL-3.0-or-later"
+LABEL ai.daax.source.herdr="https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.7.1.tar.gz"
+LABEL ai.daax.versions.pinned-as-of="2026-07-06"
 
 # Verify installations and print versions for debugging
 # Note: Some CLIs may hang on --version, so we use timeout for safety:
@@ -157,6 +178,7 @@ RUN echo "=== Core Layer Installation Verification ===" \
     && echo "codex: $(timeout 30 codex --version 2>&1 || echo 'not installed')" \
     && echo "gemini: $(timeout 30 gemini --version 2>&1 || echo 'not installed')" \
     && echo "opencode: $(timeout 30 opencode --version 2>&1 || echo 'not installed')" \
+    && echo "herdr: $(timeout 30 herdr --version 2>&1 || echo 'not installed')" \
     && echo "kiro: $(timeout 30 kiro --version 2>&1 || echo 'not installed')" \
     && echo "agent-browser: $(which agent-browser >/dev/null 2>&1 && echo 'installed' || echo 'not installed')" \
     && echo "mcp-inspector: $(which mcp-inspector >/dev/null 2>&1 && echo 'installed' || echo 'not installed')" \
@@ -169,7 +191,7 @@ RUN echo "=== Core Layer Installation Verification ===" \
     # under QEMU emulation on an amd64 runner, where Node CLI startup is slow.
     # A genuinely broken CLI errors immediately, so the gate still catches it.
     && echo "--- Verifying required CLIs are functional ---" \
-    && for c in claude codex gemini opencode; do \
+    && for c in claude codex gemini opencode herdr; do \
          if ! command -v "$c" >/dev/null 2>&1; then \
            echo "FATAL: $c is not installed (command not found)" >&2; exit 1; \
          elif err="$(timeout 60 "$c" --version 2>&1 >/dev/null)"; then \
@@ -177,7 +199,8 @@ RUN echo "=== Core Layer Installation Verification ===" \
          else \
            echo "FATAL: $c is installed but not functional: ${err:-(no stderr; non-zero exit or timeout)}" >&2; exit 1; \
          fi; \
-       done
+       done \
+    && daax-verify-herdr build
 
 # Default command
 CMD ["zsh"]

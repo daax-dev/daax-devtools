@@ -2,6 +2,7 @@
 # Minimal image: Claude Code + Flowspec only
 # No Go toolchain in the final image (fzf is built in a throwaway golang stage
 # and only its static binary is copied in), keeping the Go CVE surface at zero.
+# Includes Herdr for terminal-native multi-agent session management.
 #
 # Build: docker build -t daax-lean -f .devcontainer/lean/Dockerfile .devcontainer
 
@@ -136,6 +137,20 @@ RUN /home/vscode/.local/bin/uv cache clean \
     && npm cache clean --force 2>/dev/null || true \
     && rm -rf /tmp/* 2>/dev/null || true
 
+# Install Herdr from the official static Linux release binary. The same binary
+# runs on Alpine/musl because upstream ships it as static PIE.
+USER root
+ARG HERDR_VERSION=0.7.1
+ARG HERDR_SHA256_AMD64=b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654
+ARG HERDR_SHA256_ARM64=3d757ac30c631e79dc45038c3ecc6423fe13a89f9cffa0f415aedd2c27f1576c
+ENV HERDR_VERSION="${HERDR_VERSION}"
+COPY install-herdr.sh /tmp/install-herdr.sh
+COPY verify-herdr.sh /usr/local/bin/daax-verify-herdr
+RUN chmod +x /tmp/install-herdr.sh /usr/local/bin/daax-verify-herdr \
+    && /tmp/install-herdr.sh \
+    && rm -f /tmp/install-herdr.sh
+USER vscode
+
 # Verify
 RUN echo "=== Lean Image Verification ===" \
     && echo "Python: $(python --version)" \
@@ -144,9 +159,16 @@ RUN echo "=== Lean Image Verification ===" \
     && echo "uv: $(/home/vscode/.local/bin/uv --version)" \
     && echo "gh: $(gh --version | head -1)" \
     && echo "flowspec: $(flowspec --version 2>&1 || echo 'not installed')" \
-    && echo "claude: $(claude --version 2>&1 || echo 'not installed')"
+    && echo "claude: $(claude --version 2>&1 || echo 'not installed')" \
+    && echo "herdr: $(herdr --version 2>&1 || echo 'not installed')" \
+    && daax-verify-herdr build
 
 LABEL org.opencontainers.image.title="Daax Lean"
-LABEL org.opencontainers.image.description="Minimal devcontainer: Claude Code + Flowspec (no Go tools)"
+LABEL org.opencontainers.image.description="Minimal devcontainer: Claude Code + Flowspec + Herdr (no Go tools)"
+LABEL ai.daax.variant="lean"
+LABEL ai.daax.includes="claude-code,herdr,flowspec,backlog.md"
+LABEL ai.daax.versions.herdr="0.7.1"
+LABEL ai.daax.licenses.herdr="AGPL-3.0-or-later"
+LABEL ai.daax.source.herdr="https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.7.1.tar.gz"
 
 CMD ["zsh"]

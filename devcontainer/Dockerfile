@@ -36,6 +36,7 @@
 # MCP Inspector: @modelcontextprotocol/inspector (latest) - for debugging MCP servers
 # Kiro CLI: kiro-cli (latest) - AWS AI coding agent (curl installer)
 # Get Shit Done: get-shit-done-cc (latest) - Meta-prompting system for Claude Code
+# Herdr: 0.7.1 (pinned; checksum verified) - terminal workspace manager for agents
 # =============================================================================
 
 # Use the base image with all stable dependencies
@@ -181,13 +182,35 @@ RUN echo "=== Cleaning build caches ===" \
     && rm -f /home/vscode/.bash_history 2>/dev/null || true \
     && echo "Cache cleanup complete"
 
+# =============================================================================
+# HERDR - Terminal workspace manager for AI coding agents
+# =============================================================================
+ARG TARGETARCH
+ARG HERDR_VERSION=0.7.1
+ARG HERDR_SHA256_AMD64=b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654
+ARG HERDR_SHA256_ARM64=3d757ac30c631e79dc45038c3ecc6423fe13a89f9cffa0f415aedd2c27f1576c
+ENV HERDR_VERSION="${HERDR_VERSION}"
+COPY install-herdr.sh /tmp/install-herdr.sh
+COPY verify-herdr.sh /usr/local/bin/daax-verify-herdr
+USER root
+RUN chmod +x /tmp/install-herdr.sh /usr/local/bin/daax-verify-herdr \
+    && /tmp/install-herdr.sh \
+    && rm -f /tmp/install-herdr.sh
+USER vscode
+RUN daax-verify-herdr build
+
 # Labels for Docker Hub
 LABEL org.opencontainers.image.title="Daax Agents"
-LABEL org.opencontainers.image.description="Development container with AI coding assistants (Claude Code, Kiro, GSD, Codex, Gemini, GitHub Copilot) and task management tools"
+LABEL org.opencontainers.image.description="Development container with AI coding assistants, Herdr terminal multiplexing, and task management tools"
 LABEL org.opencontainers.image.source="https://github.com/jpoley/daax"
 LABEL org.opencontainers.image.vendor="jpoley"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.base.name="jpoley/daax-agents-base:latest"
+LABEL ai.daax.variant="agents"
+LABEL ai.daax.includes="claude-code,copilot,codex,gemini,opencode,herdr,kiro,agent-browser,mcp-inspector,get-shit-done-cc,backlog.md,openspec,flowspec"
+LABEL ai.daax.versions.herdr="0.7.1"
+LABEL ai.daax.licenses.herdr="AGPL-3.0-or-later"
+LABEL ai.daax.source.herdr="https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.7.1.tar.gz"
 
 # Verify installations and print versions for debugging
 # Note: Some CLIs may hang on --version, so we use timeout for safety:
@@ -206,6 +229,7 @@ RUN echo "=== Tools Layer Installation Verification ===" \
     && echo "codex: $(timeout 5 codex --version 2>&1 || echo 'not installed')" \
     && echo "gemini: $(timeout 5 gemini --version 2>&1 || echo 'not installed')" \
     && echo "opencode: $(timeout 5 opencode --version 2>&1 || echo 'not installed')" \
+    && echo "herdr: $(timeout 5 herdr --version 2>&1 || echo 'not installed')" \
     && echo "kiro: $(timeout 5 kiro-cli --version 2>&1 || echo 'not installed')" \
     && echo "agent-browser: $(which agent-browser >/dev/null 2>&1 && echo 'installed' || echo 'not installed')" \
     && echo "mcp-inspector: $(which mcp-inspector >/dev/null 2>&1 && echo 'installed' || echo 'not installed')" \
@@ -213,6 +237,7 @@ RUN echo "=== Tools Layer Installation Verification ===" \
     && echo "--- Task Management ---" \
     && echo "backlog: $(timeout 5 backlog --version 2>&1 || echo 'not installed')" \
     && echo "openspec: $(timeout 5 openspec --version 2>&1 || echo 'not installed')" \
+    && daax-verify-herdr build \
     && echo "PATH: $PATH"
 
 # Default command

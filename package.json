@@ -9,9 +9,11 @@
   },
   "scripts": {
     "agents:build": "docker build -t jpoley/daax-agents:latest devcontainer",
+    "agents:build:all": "bash devcontainer/build-all.sh all",
     "agents:push": "docker push jpoley/daax-agents:latest",
     "agents:release": "bun run agents:build && bun run agents:push",
     "generate-tests": "bun run src/generate-tests/cli.ts",
+    "herdr:verify": "bash devcontainer/verify-herdr.sh build",
     "test": "bun test tests/",
     "test:integration": "DAAX_TC_INTEGRATION=1 bun test tests/integration.test.ts",
     "typecheck": "tsc --noEmit"
