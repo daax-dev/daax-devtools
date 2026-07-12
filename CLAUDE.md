@@ -34,7 +34,7 @@ Goal: Reproducible, multi-arch container images and devcontainer configs that bu
 ---
 
 ## Required Reading
-`.claude/workflow.md` is always loaded (see include below) — planning and definition of done apply to every task.
+Read `.claude/workflow.md` before every task — its planning requirements and definition of done apply to all work in this repository.
 
 Read the matching file **before** you:
 - write or edit code → `.claude/language.md` (shell + Dockerfile formatting, linting, validation)
