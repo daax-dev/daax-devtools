@@ -1,110 +1,80 @@
+<!-- CLAUDE.md and AGENTS.md share the Operator Preferences and Hard Guardrails below. Keep them in sync. -->
+
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) and compatible agents working in this repository.
 
-## Project Overview
+## Project
+Name: daax-devtools
+Purpose: Container, devcontainer, and deployment tooling for the Daax platform — builds and publishes the `daax-agents` AI-coding devcontainer images (Dockerfiles, devcontainer configs, build/push shell scripts).
+Goal: Reproducible, multi-arch container images and devcontainer configs that build cleanly and publish to Docker Hub, kept in sync with daax-cli / daax-web requirements.
 
-**Daax-DevTools** provides container and deployment tooling for the Daax platform. This module contains Dockerfiles, devcontainer configurations, deployment scripts, and docker-compose orchestration for building and running Daax components.
+---
 
-## Purpose
+## Operator Preferences
+<!-- Operator-specific. Revise or replace when applying to a different operator. -->
+- State facts only. No sugarcoating.
+- Surface problems, blockers, and risks immediately.
+- Consult before one-way-door decisions and before any architectural change.
+- Never answer from a guess. Validate claims against primary sources. If validation is not possible, say so explicitly.
+- Objective language. No first-person pronouns. No apologies or hedges.
 
-- Build and package Daax components as container images
-- Provide devcontainer configurations for development environments
-- Deployment scripts for production and staging environments
-- docker-compose orchestration for multi-container setups
+---
 
-## Directory Structure
+## Hard Guardrails (always apply)
+- Plan before any non-trivial change. Write the plan down. Wait for approval.
+- Never commit or merge directly to `main`.
+- Never commit secrets, tokens, keys, or `.env` files with live values (e.g., `GITHUB_DAAX`, Docker Hub credentials).
+- No destructive git (`reset --hard`, force-push, branch delete) without explicit operator approval.
+- Never overwrite uncommitted user changes. Inspect existing patterns before editing.
+- Run the formatter, linter, and validation after changes. There is no test suite — validation is `shellcheck` + `docker build` (see `.claude/workflow.md`). If validation is not possible, state exactly why.
+- Log non-trivial decisions to `.logs/decisions/<topic>.jsonl`.
+- Repo-local instructions override these template defaults.
 
-```
-daax-devtools/
-├── devcontainer/          # Devcontainer configurations and Dockerfiles
-│   ├── lean/              # Minimal Alpine-based devcontainer
-│   ├── starter-app/       # Starter template devcontainer
-│   ├── Dockerfile.base    # Foundation layer (Python, Node, dev tools)
-│   ├── Dockerfile.core    # Base + AI CLIs
-│   ├── Dockerfile         # Full-featured default image
-│   ├── Dockerfile.*       # Specialized variants (flowspec, gsd, openspec)
-│   ├── build-all.sh       # Build all Dockerfile variants
-│   ├── build-push-docker.sh # Build and push to registry
-│   └── README.md          # Full devcontainer documentation
-├── scripts/               # Utility scripts
-│   └── contain-claude.sh  # Helper for running Claude in container
-├── push.sh                # Container image push script
-├── rebuild.sh             # Rebuild containers script
-├── restart.sh             # Restart services script
-├── package.json           # Package configuration
-└── README.md              # Module documentation
-```
+---
 
-## Commands
+## Required Reading
+Read `.claude/workflow.md` before every task — its planning requirements and definition of done apply to all work in this repository.
 
-```bash
-# Rebuild containers
-./rebuild.sh
+Read the matching file **before** you:
+- write or edit code → `.claude/language.md` (shell + Dockerfile formatting, linting, validation)
+- make an architectural or cross-boundary decision → `.claude/architecture.md`
+- touch dependencies, runtime, or infrastructure → `.claude/stack.md`
+- perform branch / PR / commit / merge operations → `.claude/sourcecontrol.md`
+- write a decision or reference log entry → `.claude/history.md`
 
-# Push to registry
-./push.sh
+---
 
-# Restart services
-./restart.sh
-
-# Build devcontainer images (from devcontainer/ directory)
-cd devcontainer
-./build-push-docker.sh        # Build and push tools layer
-./build-push-docker.sh --base # Full rebuild including base layer
-./build-all.sh                # Build all Dockerfile variants
-```
-
-## Devcontainer Variants
-
-### Default (daax-agents)
-Full-featured development environment with all tools:
-- Base: node:22-bookworm-slim
-- All AI CLIs (Claude, Copilot, Codex, Gemini, Kiro)
-- Flowspec, Backlog.md, GSD
-- Use case: Full development workflow
-
-### Lean (Fast Startup)
-Minimal Alpine-based container (~600MB):
-- Base: Docker Hardened Image (Alpine)
-- Claude Code + Flowspec + Backlog.md
-- Use case: Quick iterations, reduced CVE surface
-
-### Starter App
-Template devcontainer for new projects:
-- Minimal configuration
-- Use case: Starting point for project-specific customization
-
-See [devcontainer/README.md](devcontainer/README.md) for complete image hierarchy and build documentation.
-
-## Key Files
-
-| File | Purpose |
+## Repository Map
+| Path | Purpose |
 |------|---------|
-| `rebuild.sh` | Rebuild and restart containers |
-| `push.sh` | Push images to container registry |
-| `restart.sh` | Restart running services |
-| `devcontainer/build-push-docker.sh` | Build and push devcontainer images |
-| `devcontainer/build-all.sh` | Build all Dockerfile variants |
+| `devcontainer/Dockerfile.base` | Foundation layer (`jpoley/daax-agents-base`): Python 3, Node 22, dev tools, oh-my-posh. Rebuild ~monthly. (Go is not here — only in `Dockerfile.code-server`.) |
+| `devcontainer/Dockerfile` | Tools layer (`jpoley/daax-agents`): AI CLIs (Claude, Copilot, Codex, Gemini) on top of base. Rebuild ~weekly. |
+| `devcontainer/Dockerfile.{core,flowspec,gsd,openspec,code-server}` | Specialized image variants. |
+| `devcontainer/build-push-docker.sh` | 2-phase multi-arch build+push to Docker Hub (base + tools). |
+| `devcontainer/build-all.sh` | Build all Dockerfile variants. |
+| `devcontainer/{postCreate.sh,prebuild.sh}` | Devcontainer lifecycle hooks. |
+| `devcontainer/{lean,starter-app}/` | Lean (Alpine) and starter-template devcontainer variants. |
+| `devcontainer/devcontainer.json` | VS Code devcontainer config. |
+| `push.sh` / `rebuild.sh` / `rebuild-code-server.sh` / `restart.sh` | Root container management scripts. |
+| `scripts/contain-claude.sh` | Helper to run Claude inside the devcontainer. |
+| `package.json` | npm metadata + `agents:build|push|release` scripts (run with `bun`). |
+| `backlog/` | Backlog.md task-tracking config (system of record). |
 
-## Integration Points
+## Key Commands
+```bash
+./rebuild.sh                       # Build daax-agents image locally
+./push.sh                          # Build + push tools image to Docker Hub (defaults to linux/amd64 only)
+./push.sh --platforms linux/amd64,linux/arm64   # Multi-arch push (push.sh is single-arch by default)
+./push.sh --tag v1.0.0             # Push with a version tag
+./restart.sh                       # Restart the running daax container
+cd devcontainer && ./build-push-docker.sh        # Build+push tools (cached base)
+cd devcontainer && ./build-push-docker.sh --base # Rebuild base layer first
+cd devcontainer && ./build-all.sh                # Build all variants
+bun run agents:release             # package.json: build + push :latest
+```
 
-- **daax-web**: Containerized web workbench deployment
-- **Docker/Podman**: Container runtime interface
-- **Tailscale**: Network deployment target
-- **Container registries**: Image distribution
-
-## Development Workflow
-
-1. Modify Dockerfile or devcontainer config
-2. Test locally with `docker build`
-3. Push with `./push.sh`
-
-## Notes
-
-- All scripts are executable (`chmod +x`)
-- Keep devcontainer configs in sync with daax-cli requirements
-- For docker-compose usage, see the main daax-web project
+---
 
 <!-- BACKLOG.MD MCP GUIDELINES START -->
 
@@ -112,7 +82,7 @@ See [devcontainer/README.md](devcontainer/README.md) for complete image hierarch
 
 ## BACKLOG WORKFLOW INSTRUCTIONS
 
-This project uses Backlog.md MCP for all task and project management activities.
+This project uses Backlog.md (MCP) for all task and project management activities. It is the system of record for work intake.
 
 **CRITICAL GUIDANCE**
 
@@ -122,3 +92,5 @@ This project uses Backlog.md MCP for all task and project management activities.
 </CRITICAL_INSTRUCTION>
 
 <!-- BACKLOG.MD MCP GUIDELINES END -->
+
+@.claude/workflow.md

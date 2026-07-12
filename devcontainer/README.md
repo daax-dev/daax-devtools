@@ -586,7 +586,7 @@ The devcontainer uses a **3-phase build architecture** for efficient updates:
 │  │ • Devcontainer features pre-baked (zsh, oh-my-zsh, vscode user)       │ │
 │  │ • Faster startup (no feature application at runtime)                   │ │
 │  └────────────────────────────────────────────────────────────────────────┘ │
-│  Rebuild: After every tools layer build (automatic in CI)                    │
+│  Rebuild: Manually, after every tools layer build (no CI)                    │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -616,48 +616,24 @@ The devcontainer uses a **3-phase build architecture** for efficient updates:
 ./build-push-docker.sh --base v1.2.3
 ```
 
-## Automatic Rebuild Strategy
+## Build & Publish (Manual)
 
-The images are automatically rebuilt via GitHub Actions:
+There is no CI in this repo — no `.github/workflows/` directory and no scheduled rebuilds. Images are built and pushed manually. Paths below are relative to the repo root:
 
-| Trigger | Base Layer | Tools Layer | Devcontainer | Frequency |
-|---------|------------|-------------|--------------|-----------|
-| Schedule (Sunday 2am UTC) | No | Yes | Yes | Weekly |
-| Schedule (1st of month 3am UTC) | Yes | Yes | Yes | Monthly |
-| Push to main (Dockerfile.base) | Yes | Yes | Yes | On change |
-| Push to main (Dockerfile) | No | Yes | Yes | On change |
-| Release | No | Yes | Yes | On publish |
-| Manual dispatch | Optional | Yes | Yes | On demand |
+- Tools layer (cached base): `cd devcontainer && ./build-push-docker.sh`.
+- Full rebuild (base + tools): `cd devcontainer && ./build-push-docker.sh --base`.
+- Single local image: `./rebuild.sh`.
+- Push to Docker Hub: `./push.sh`.
 
-### How It Works
-
-1. **Weekly (Sunday 2am UTC)**: Rebuilds tools + devcontainer layers
-   - Claude Code, Copilot, Codex, Gemini, flowspec get latest versions
-   - Uses cached base layer (~5 min build)
-   - Devcontainer layer automatically rebuilt after tools
-
-2. **Monthly (1st at 3am UTC)**: Full rebuild
-   - Updates Python, Node, Go, system packages
-   - Rebuilds all three layers (~15 min build)
-
-3. **On Push**: Triggered when relevant files change
-   - `Dockerfile.base` change → rebuilds all three layers
-   - `Dockerfile` change → rebuilds tools + devcontainer
-
-4. **Manual Dispatch**: For emergency updates
-   - Available at Actions → Docker Publish → Run workflow
-   - Option to force base layer rebuild
+Suggested cadence (manual): rebuild the base layer ~monthly to refresh system packages, and the tools layer ~weekly to pick up the latest AI CLIs.
 
 ### Monitoring Updates
 
-Check Docker Hub for latest image:
+Check Docker Hub for the latest image:
 ```bash
 docker pull jpoley/daax-agents:latest
 docker inspect jpoley/daax-agents:latest | jq '.[0].Created'
 ```
-
-Check GitHub Actions for build history:
-- https://github.com/jpoley/daax/actions/workflows/docker-publish.yml
 
 ## References
 
