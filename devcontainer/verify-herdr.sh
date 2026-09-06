@@ -80,6 +80,26 @@ cleanup_runtime_and_tmp() {
   return "$status"
 }
 
+# Assert that `herdr <group> <cmd>` exists, tolerating both help renderings.
+#
+# Through 0.7.x each group's --help spelled its subcommands out as usage lines
+# ("herdr workspace create --cwd <path> ..."), so a literal '<group> <cmd>' grep
+# matched. 0.8.0 replaced that with a clap-style two-column table:
+#
+#   Usage: herdr workspace [COMMAND]
+#   Commands:
+#     create           Create a workspace
+#
+# The subcommands are all still there, but the literal grep stopped matching and
+# failed the image build on a pure formatting change. Match EITHER rendering so
+# this gate tracks capability rather than help layout.
+assert_subcommand() {
+  local group="$1" cmd="$2" help
+  help="$(herdr "$group" --help 2>&1 || true)"
+  grep -qE "(^|[^[:alnum:]_-])${group}[[:space:]]+${cmd}([[:space:]]|$)|^[[:space:]]+${cmd}([[:space:]]|$)" <<<"$help" \
+    || fail "herdr ${group} ${cmd} CLI is not available"
+}
+
 require_herdr() {
   command -v herdr >/dev/null 2>&1 || fail "herdr is not on PATH"
 
@@ -95,21 +115,10 @@ require_herdr() {
   grep -q 'integration <subcommand>' <<<"$help" \
     || fail "herdr --help does not list integration support"
 
-  help="$(herdr workspace --help 2>&1 || true)"
-  grep -q 'workspace create' <<<"$help" \
-    || fail "herdr workspace CLI is not available"
-
-  help="$(herdr agent --help 2>&1 || true)"
-  grep -q 'agent start' <<<"$help" \
-    || fail "herdr agent start CLI is not available"
-
-  help="$(herdr pane --help 2>&1 || true)"
-  grep -q 'pane read' <<<"$help" \
-    || fail "herdr pane read CLI is not available"
-
-  help="$(herdr session --help 2>&1 || true)"
-  grep -q 'session list' <<<"$help" \
-    || fail "herdr session CLI is not available"
+  assert_subcommand workspace create
+  assert_subcommand agent start
+  assert_subcommand pane read
+  assert_subcommand session list
   herdr status --json >"$VERIFY_TMP/herdr-status.json"
   herdr integration status >"$VERIFY_TMP/herdr-integration-status.txt"
 }
