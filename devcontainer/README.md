@@ -166,11 +166,11 @@ dhi.io/python:3.13-alpine3.22-dev (Alpine-based, separate tree)
 ### Herdr Multi-Agent Sessions
 
 Herdr is installed in every AI coding image and in the code-server web image.
-It is pinned to `0.7.1` and installed from the official Linux release assets
+It is pinned to `0.8.2` and installed from the official Linux release assets
 with SHA256 verification. Herdr is licensed AGPL-3.0-or-later with a commercial
 license option. Because the published images convey the Herdr binary, image
 metadata records the corresponding unmodified source archive for the bundled
-version: `https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.7.1.tar.gz`.
+version: `https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.8.2.tar.gz`.
 Keep that source pointer in sync with `HERDR_VERSION` before publishing.
 
 Use it from either a normal shell or a browser terminal attached to the same

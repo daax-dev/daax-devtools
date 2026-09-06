@@ -75,9 +75,9 @@ LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.base.name="jpoley/daax-agents-core:latest"
 LABEL ai.daax.variant="openspec"
 LABEL ai.daax.includes="core,herdr,@fission-ai/openspec"
-LABEL ai.daax.versions.herdr="0.7.1"
+LABEL ai.daax.versions.herdr="0.8.2"
 LABEL ai.daax.licenses.herdr="AGPL-3.0-or-later"
-LABEL ai.daax.source.herdr="https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.7.1.tar.gz"
+LABEL ai.daax.source.herdr="https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.8.2.tar.gz"
 
 # Verify installations and print versions for debugging
 RUN echo "=== OpenSpec Layer Installation Verification ===" \

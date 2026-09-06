@@ -25,7 +25,7 @@
 # =============================================================================
 # VERSION TRACKING - Update these when upgrading AI CLI tools
 # =============================================================================
-# Last updated: 2026-07-01
+# Last updated: 2026-09-05
 # Flowspec: v0.4.004 (pinned)
 # Backlog.md: backlog.md (latest - needs ignore-scripts=false for postinstall)
 # Claude Code: @anthropic-ai/claude-code (latest)
@@ -36,7 +36,7 @@
 # MCP Inspector: @modelcontextprotocol/inspector (latest) - for debugging MCP servers
 # Kiro CLI: kiro-cli (latest) - AWS AI coding agent (curl installer)
 # Get Shit Done: get-shit-done-cc (latest) - Meta-prompting system for Claude Code
-# Herdr: 0.7.1 (pinned; checksum verified) - terminal workspace manager for agents
+# Herdr: 0.8.2 (pinned; checksum verified) - terminal workspace manager for agents
 # =============================================================================
 
 # Use the base image with all stable dependencies
@@ -186,9 +186,9 @@ RUN echo "=== Cleaning build caches ===" \
 # HERDR - Terminal workspace manager for AI coding agents
 # =============================================================================
 ARG TARGETARCH
-ARG HERDR_VERSION=0.7.1
-ARG HERDR_SHA256_AMD64=b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654
-ARG HERDR_SHA256_ARM64=3d757ac30c631e79dc45038c3ecc6423fe13a89f9cffa0f415aedd2c27f1576c
+ARG HERDR_VERSION=0.8.2
+ARG HERDR_SHA256_AMD64=976150a14d490c94b243ea2e1a7eb2dfb67f12e36b182db90936f6728e6aecf4
+ARG HERDR_SHA256_ARM64=f55610658e1c2e0d2aaef730b4b2ab885f7f8ba00285ab372bfb14f2e3d5b40d
 ENV HERDR_VERSION="${HERDR_VERSION}"
 COPY install-herdr.sh /tmp/install-herdr.sh
 COPY verify-herdr.sh /usr/local/bin/daax-verify-herdr
@@ -208,9 +208,9 @@ LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.base.name="jpoley/daax-agents-base:latest"
 LABEL ai.daax.variant="agents"
 LABEL ai.daax.includes="claude-code,copilot,codex,gemini,opencode,herdr,kiro,agent-browser,mcp-inspector,get-shit-done-cc,backlog.md,openspec,flowspec"
-LABEL ai.daax.versions.herdr="0.7.1"
+LABEL ai.daax.versions.herdr="0.8.2"
 LABEL ai.daax.licenses.herdr="AGPL-3.0-or-later"
-LABEL ai.daax.source.herdr="https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.7.1.tar.gz"
+LABEL ai.daax.source.herdr="https://github.com/ogulcancelik/herdr/archive/refs/tags/v0.8.2.tar.gz"
 
 # Verify installations and print versions for debugging
 # Note: Some CLIs may hang on --version, so we use timeout for safety:
